@@ -48,7 +48,7 @@ Page({
   },
   cancelVerification() {
     if (this.data.busy) return
-    this.client.logout()
+    this.client.cancelVerification()
     this.setData({otp:false,code:'',password:'',error:'',message:''})
   },
   async loadDevices() {

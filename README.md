@@ -1,51 +1,76 @@
 # XiaomiSound
 
-微信小程序原型：前端登录小米账号，选择在线小爱音箱，播放固定 MP3。无后端、无运行时第三方依赖。
+“天昊故事”微信小程序的音箱遥控原型。小米账号和验证码登录由微信云函数处理，登录后小程序直接调用 MiNA 控制音箱。固定音频为 `https://samplelib.com/mp3/sample-12s.mp3`；支持音箱选择、播放、停止、状态查询和退出登录。
 
-固定音频：`https://samplelib.com/mp3/sample-12s.mp3`，可在 `miniprogram/config.js` 中修改。应用还提供停止、状态查询和退出登录。
+## 当前状态
 
-## 在微信开发者工具运行
+版本 0.2.0 已完成云函数迁移。部署需要提供 **云开发环境 ID**，并将环境关联到 AppID `wxa0a6030da19850ad`。`miniprogram/config.js` 的 `cloudEnv` 为空时登录会提示配置环境，不会回退到已经失败的前端密码登录方式。
 
-1. 导入本仓库目录，项目已配置“天昊故事” AppID `wxa0a6030da19850ad`；导入者需要拥有该小程序的开发权限。
-2. 在小程序后台的服务器域名配置中添加以下 **request 合法域名**：
-   - `https://account.xiaomi.com`
-   - `https://api2.mina.mi.com`
-   - `https://sts.api.mina.mi.com`（登录凭证换取可能用到的域名，以实际跳转为准）
-3. 如果小米登录返回其他域名，确认它确属登录链路后，在 `config.js` 的 `allowedHosts` 和微信后台中同时添加。程序拒绝未配置的目标，不会将凭证随意发送给陌生域名。
-4. 登录绑定音箱的小米账号；需要短信或邮箱验证时填写验证码。
-5. 选择在线音箱，点击“在音箱播放”，然后查询状态并在现场确认是否出声。若重复播放，点击停止。
+## 为什么迁移登录
 
-音箱自行读取音频 URL，小程序不下载音频，因此仅远程播放无需配置音频域名为 downloadFile 合法域名。项目默认开启域名校验；开发工具中临时跳过校验不代表正式版能访问这些域名。
+iOS 微信真机上 `/pass/serviceLogin` GET 返回 200，`/pass/serviceLoginAuth2` POST 返回 403。本地使用同一组登录参数对照后复现：POST 带 `https://servicewechat.com/wxa0a6030da19850ad/0/page-frame.html` Referer 返回 403，不带时返回正常账号校验 JSON。云函数以 Node.js HTTPS 发起小米认证，不转发该 Referer。
 
-## 当前验证边界
+云端 Node.js 认证代码已在本机使用虚构账号验证：GET、POST 均返回 HTTP 200，并得到预期的账号校验失败结果。这验证了请求协议，未证明腾讯云出口 IP 或真实账号登录一定通过小米风控。
 
-- 项目前端登录尚需在微信开发者工具和 iOS/Android 真机验证，不能将 Python 登录成功当作小程序登录成功。
-- `wx.request` 可能自动处理重定向并隐藏中间响应。本项目管理可见的 Cookie 和跳转；若中间的 `serviceToken` 不可读取，明确报错，不会伪造登录成功。纯前端方案在该运行环境下可能无法完成。
-- 请求采用 MiService 中使用的 User-Agent，但微信运行环境可能覆盖或限制请求头；需要真机确认。登录风控可能要求图形验证码或网页验证，当前不支持这些额外验证。
-- 小米接口属于第三方客户端使用的接口，没有已确认的公开稳定性承诺。以实际后台域名校验结果为准。
-- L16B 的 URL 播放、状态、音量及停止此前在 Python 中实测成功；本项目不自动调整音量。其他机型的音乐接口有适配分支，尚未实测。
-- API 接受指令和设备报告播放状态均不等同于现场已听到声音。
+## 开通与部署
 
-### HTTP 403 排查
+1. 在微信开发者工具“云开发”创建环境，记录环境 ID。选免费体验环境时先检查该账号的资格和有效期，不需要为本原型开通超限按量。
+2. 将云环境关联到“天昊故事” AppID。使用有开发权限的微信导入本仓库。
+3. 云数据库新建集合 **`xiaomi_login_sessions`**。设置自定义安全规则为：
 
-0.1.1 显示失败的具体登录步骤和接口路径。报错后可点“复制诊断信息”，其中仅包含版本、平台、请求步骤、域名/路径、状态码、耗时和可见 Cookie 数量，不包含账号、密码、验证码、Cookie 内容、请求参数或响应正文。HTTP 403 表示收到服务器拒绝响应，不能仅凭这个状态码确认是密码错误、微信请求头还是网络风控导致。不要反复提交密码；先对比失败步骤，必要时换手机网络做一次对照。
+   ```json
+   { "read": false, "write": false }
+   ```
 
-## 凭证处理
+   这是仅允许服务端访问的集合；不要设置客户端可读。`cloudfunctions/database.rules.json` 是规则参考，不会因为上传函数而自动应用。
+4. 在集合为 `expiresOn` 字段创建 TTL 索引，过期时间设置为 0 秒。业务逻辑会拒绝超过 10 分钟的会话；TTL 索引用于自动清除无人继续操作的会话 Cookie。未创建 TTL 索引时业务过期检查仍有效，但废弃会话只能在用户再次登录时清理。
+5. 右键 `cloudfunctions/xiaomiLogin`，选择“上传并部署：云端安装依赖”。运行时使用控制台支持的 Node.js 版本（建议 Node.js 20），内存 256MB，函数超时 60 秒。函数不会在运行时等待用户输入验证码，两次提交分别执行。
+6. 在 `miniprogram/config.js` 填入 `cloudEnv` 环境 ID。
+7. 在微信后台配置 **request 合法域名 `https://api2.mina.mi.com`**。账号认证域名不再由前端访问；仅遥控音箱无需配置音频域名为 downloadFile 合法域名。
+8. 上传/预览小程序，输入小米账号密码。收到短信或邮箱验证码后输入完成登录，再选择在线音箱播放。
 
-账号和密码由用户输入，无内置账号、密码或 Token。密码在登录请求结束后从页面状态清除，不持久化。仅 `userId` 和 `serviceToken` 保存到小程序本地存储；本地存储不是系统安全钥匙串，退出登录会清除本应用保存的凭证和 Cookie。日志不打印认证响应。Token 失效后提示重新登录，避免自动反复触发验证码。
+云函数上传也可以使用官方 `miniprogram-ci`：
 
-## 校验
+```sh
+# 先安装 miniprogram-ci，密钥应位于仓库之外。
+export XIAOMI_CLOUD_ENV='你的环境ID'
+export MINIPROGRAM_PRIVATE_KEY_PATH='/你的密钥路径/private.wxa0a6030da19850ad.key'
+npm run deploy:cloud
+```
+
+脚本上传云函数成功后会写入客户端环境 ID；数据库权限、TTL 索引和运行时超时仍需按上面的步骤设置。上传云函数和上传小程序是两个独立操作。
+
+## 数据与会话
+
+- 密码不写入文件、数据库或日志，仅在单次调用中提交给小米；前端请求结束后清除密码输入。
+- 云函数每次创建独立认证客户端。验证码阶段仅暂存 Cookie、验证方式及随机设备标识，不暂存密码。
+- 会话以 48 位随机十六进制 ID 标识，并绑定 `cloud.getWXContext()` 提供的 OPENID。前端传入的用户 ID 不作为身份依据；仅接受指定 AppID 调用。
+- 同一微信用户最多每 60 秒发起一次登录，单个验证码会话最多验证 5 次；条件更新防止两个实例同时使用会话。
+- 验证码会话有效期 10 分钟，成功或取消后删除。数据库中 Cookie 属于敏感凭证，需要按上文设置服务端专用权限和 TTL。
+- 最终只把 `userId`、`serviceToken` 返回到当前调用者，并保存在小程序本地。退出后清除；本地存储不是系统安全钥匙串。
+- 诊断仅记录步骤、域名/路径、HTTP 状态、耗时和可见 Cookie 数量，不记录查询参数、账号、密码、验证码、Cookie 值或响应正文。不要给函数添加打印 `event` 或认证响应的日志。
+
+## 验证边界
+
+- Python 中已实测 L16B 的播放、状态和停止。当前小程序播放仍需真机验证；指令被接受不代表现场已出声。
+- 音箱使用当前音量，若音频重复播放可点击停止。
+- 部分机型使用 `player_play_music`，当前有适配但未实机测试。
+- 小米认证仍可能触发图形验证码、网页验证、限流或云端 IP 风控；当前支持短信/邮箱验证。
+- 云函数迁移不代表拥有小米官方稳定接口支持。
+
+## 本地检查
 
 ```sh
 npm test
 ```
 
-测试覆盖登录所需散列、Cookie 域/路径隔离、验证码流程、凭证缺失、设备返回错误及播放请求结构。测试通过不代表微信原生网络栈与小米认证兼容。
+覆盖认证请求、Cookie 隔离、跨实例验证码会话恢复、用户隔离、过期、限流、验证次数、取消和前端云调用。模拟测试不替代云端部署及真机联调。
 
-## 实现参考
+## 资料
 
-- https://github.com/Yonsm/MiService/blob/main/miservice/miaccount.py
-- https://github.com/Yonsm/MiService/blob/main/miservice/minaservice.py
-- https://developers.weixin.qq.com/miniprogram/dev/api/network/request/wx.request.html
+- https://docs.cloudbase.net/recipes/add-cloud-function-wechat-miniprogram
+- https://docs.cloudbase.net/database/security-rules
+- https://github.com/wechat-miniprogram/miniprogram-ci-dist
+- https://github.com/Yonsm/MiService
 
-接口流程参考本机 MiService 3.0.1，代码未导入该库。
+认证流程参考 MiService 3.0.1；没有导入 MiService。云端使用 Node.js 原生 HTTPS 和 crypto，微信环境访问使用 wx-server-sdk。

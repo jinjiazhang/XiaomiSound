@@ -1,6 +1,7 @@
 {
   "description": "Xiaomi Sound remote player",
   "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
   "appid": "wxa0a6030da19850ad",
   "projectname": "XiaomiSound",

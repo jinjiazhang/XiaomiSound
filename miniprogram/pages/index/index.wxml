@@ -10,7 +10,7 @@
       <view class="label">密码</view>
       <input class="input" password value="{{password}}" data-field="password" bindinput="onInput" placeholder="输入账号密码" disabled="{{busy}}" />
       <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="login">登录</button>
-      <view class="hint">使用绑定音箱的账号。密码仅用于本次登录，登录凭证保存在当前设备。</view>
+      <view class="hint">使用绑定音箱的账号。账号密码由云函数提交给小米，密码不保存；登录凭证保存在当前设备。</view>
     </block>
     <block wx:else>
       <view class="hint">请输入收到的{{otpMethod}}验证码</view>

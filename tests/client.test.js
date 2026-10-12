@@ -1,7 +1,11 @@
 const test=require('node:test')
 const assert=require('node:assert/strict')
 const crypto=require('node:crypto')
-const {md5,sha1,base64}=require('../miniprogram/utils/crypto')
+const md5=text=>crypto.createHash('md5').update(text).digest('hex')
+const sha1=text=>crypto.createHash('sha1').update(text).digest()
+const base64=bytes=>Buffer.from(bytes).toString('base64')
+const {AuthClient}=require('../cloudfunctions/xiaomiLogin/auth')
+const AUTH_HOSTS=['account.xiaomi.com','api2.mina.mi.com','sts.api.mina.mi.com']
 const {CookieJar,HttpClient}=require('../miniprogram/utils/http')
 const {XiaomiClient}=require('../miniprogram/utils/xiaomi')
 const config=require('../miniprogram/config')
@@ -24,12 +28,6 @@ function platform(steps, saved) {
 }
 const auth={code:0,userId:'test-user',ssecurity:'security',nonce:123,
   location:'https://sts.api.mina.mi.com/sts?ticket=example'}
-test('hashes match Node for unicode and block boundaries',()=>{
-  for (const text of ['', 'abc', '密码🎵', 'x'.repeat(55),'x'.repeat(56),'x'.repeat(64),'x'.repeat(1000)]) {
-    assert.equal(md5(text),crypto.createHash('md5').update(text).digest('hex'))
-    assert.equal(base64(sha1(text)),crypto.createHash('sha1').update(text).digest('base64'))
-  }
-})
 test('Cookie jar respects host, domain, path boundary, expiry and combined Expires headers',()=>{
   const jar=new CookieJar()
   jar.capture('https://account.xiaomi.com/pass/login',{header:{'Set-Cookie':
@@ -46,16 +44,16 @@ test('visible redirects capture cookies and do not leak explicit cookies cross-h
     {url:'account.xiaomi.com/pass/login',status:302,header:{Location:'https://sts.api.mina.mi.com/next'},cookies:['private=x; Path=/']},
     {url:'sts.api.mina.mi.com/next',inspect:r=>assert.equal(r.header.Cookie,undefined)}
   ])
-  await new HttpClient(p,config.allowedHosts).request('https://account.xiaomi.com/pass/login',{cookies:{password:'secret'}})
+  await new HttpClient(p,AUTH_HOSTS).request('https://account.xiaomi.com/pass/login',{cookies:{password:'secret'}})
 })
 test('unknown domains blocked and network errors do not expose URLs or tokens',async()=>{
-  const client=new HttpClient(platform([{url:'account.xiaomi.com',fail:true}]),config.allowedHosts)
+  const client=new HttpClient(platform([{url:'account.xiaomi.com',fail:true}]),AUTH_HOSTS)
   await assert.rejects(()=>client.request('https://evil.example/'),/额外的域名/)
   await assert.rejects(()=>client.request('https://account.xiaomi.com/pass?token=secret'),error=>!error.message.includes('secret'))
 })
 test('403 identifies the login step and diagnostic output excludes credentials',async()=>{
   const p=platform([{url:'serviceLoginAuth2',status:403,header:{'Set-Cookie':'secret=value'},data:{token:'hidden'}}])
-  const http=new HttpClient(p,config.allowedHosts)
+  const http=new HttpClient(p,AUTH_HOSTS)
   await assert.rejects(()=>http.json('https://account.xiaomi.com/pass/serviceLoginAuth2?token=secret',{
     stage:'提交账号密码',data:{user:'private-user',hash:'private-hash'},cookies:{passToken:'private-token'}
   }),error=>error.message.includes('提交账号密码') && error.message.includes('/pass/serviceLoginAuth2') && !error.message.includes('?'))
@@ -76,10 +74,9 @@ test('password login validates token and stores no password',async()=>{
     }},
     {url:'/admin/v2/device_list',data:{code:0,data:[]},inspect:r=>assert.equal(r.header.Cookie,'userId=test-user; serviceToken=fixture-token')}
   ])
-  const client=new XiaomiClient(p)
+  const client=new AuthClient(p)
   assert.deepEqual(await client.startLogin('fixture-user','fixture-password'),{otp:false})
-  assert.deepEqual(p.storage.get(config.storageKey),{userId:'test-user',serviceToken:'fixture-token'})
-  client.logout()
+  assert.deepEqual(client.session,{userId:'test-user',serviceToken:'fixture-token'})
   assert.equal(p.storage.size,0)
 })
 test('OTP login keeps verification cookies and completes without storing credentials',async()=>{
@@ -99,7 +96,7 @@ test('OTP login keeps verification cookies and completes without storing credent
     {url:'clientSign=',cookies:['serviceToken=fixture-token; Path=/']},
     {url:'/admin/v2/device_list',data:{code:0,data:[]}}
   ])
-  const client=new XiaomiClient(p)
+  const client=new AuthClient(p)
   assert.deepEqual(await client.startLogin('fixture-user','fixture-password'),{otp:true,method:'手机'})
   assert.equal(p.storage.size,0)
   await client.submitCode('123456')
@@ -109,8 +106,8 @@ test('OTP login keeps verification cookies and completes without storing credent
 })
 test('missing redirect cookie fails explicitly without persisting a session',async()=>{
   const p=platform([{url:'serviceLogin?',data:auth},{url:'clientSign='}])
-  const client=new XiaomiClient(p)
-  await assert.rejects(()=>client.startLogin('fixture','password'),/未取得 serviceToken/)
+  const client=new AuthClient(p)
+  await assert.rejects(()=>client.startLogin('fixture','password'),/未返回 serviceToken/)
   assert.equal(p.storage.size,0)
 })
 test('fixed URL play and status are correctly encoded; inner errors are not accepted',async()=>{
