@@ -1,0 +1,12 @@
+{
+  "description": "Xiaomi Sound remote player",
+  "miniprogramRoot": "miniprogram/",
+  "compileType": "miniprogram",
+  "appid": "wxa0a6030da19850ad",
+  "projectname": "XiaomiSound",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "urlCheck": true
+  }
+}

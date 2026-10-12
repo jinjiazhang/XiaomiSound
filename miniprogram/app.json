@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarTitleText": "家庭音箱",
+    "navigationBarBackgroundColor": "#f5f7fb",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f7fb"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

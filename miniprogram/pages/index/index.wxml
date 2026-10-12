@@ -1,0 +1,51 @@
+<view class="page">
+  <view class="heading">把音乐送到家里</view>
+  <view class="subtitle">连接小爱音箱，播放一段测试音乐</view>
+
+  <view wx:if="{{!loggedIn}}" class="card">
+    <view class="card-title">{{otp ? '验证你的账号' : '登录小米账号'}}</view>
+    <block wx:if="{{!otp}}">
+      <view class="label">账号</view>
+      <input class="input" value="{{account}}" data-field="account" bindinput="onInput" placeholder="手机号、邮箱或小米 ID" disabled="{{busy}}" />
+      <view class="label">密码</view>
+      <input class="input" password value="{{password}}" data-field="password" bindinput="onInput" placeholder="输入账号密码" disabled="{{busy}}" />
+      <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="login">登录</button>
+      <view class="hint">使用绑定音箱的账号。密码仅用于本次登录，登录凭证保存在当前设备。</view>
+    </block>
+    <block wx:else>
+      <view class="hint">请输入收到的{{otpMethod}}验证码</view>
+      <input class="input code" value="{{code}}" data-field="code" bindinput="onInput" placeholder="验证码" disabled="{{busy}}" />
+      <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="verify">验证并登录</button>
+      <button class="text-button" disabled="{{busy}}" bindtap="cancelVerification">返回登录</button>
+    </block>
+  </view>
+
+  <block wx:if="{{loggedIn}}">
+    <view class="card">
+      <view class="card-head">
+        <view class="card-title">我的音箱</view>
+        <button class="small-button" disabled="{{busy}}" bindtap="refreshDevices">刷新</button>
+      </view>
+      <picker wx:if="{{devices.length}}" mode="selector" range="{{devices}}" range-key="label" value="{{selectedIndex}}" bindchange="selectDevice" disabled="{{busy}}">
+        <view class="device-picker">{{selectedDevice.label}} <text class="arrow">⌄</text></view>
+      </picker>
+      <view wx:else class="hint">没有找到音箱，请确认账号和设备网络后刷新。</view>
+      <view wx:if="{{selectedDevice}}" class="hint">型号 {{selectedDevice.hardware}}</view>
+    </view>
+    <view class="card music-card">
+      <view class="music-icon">♫</view>
+      <view class="track-title">{{audioTitle}}</view>
+      <view class="track-caption">固定音频 · MP3</view>
+      <button class="primary" loading="{{busy}}" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="play">在音箱播放</button>
+      <view class="actions">
+        <button class="secondary" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="stop">停止</button>
+        <button class="secondary" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="refreshStatus">查询状态</button>
+      </view>
+      <view class="status">{{statusText}}<text wx:if="{{volumeText}}"> · 音量 {{volumeText}}</text></view>
+      <view class="hint">使用音箱当前音量。若音乐重复播放，可点“停止”。</view>
+    </view>
+    <button class="text-button" disabled="{{busy}}" bindtap="logout">退出登录</button>
+  </block>
+  <view wx:if="{{message}}" class="notice" role="status">{{message}}</view>
+  <view wx:if="{{error}}" class="notice error" role="alert">{{error}}</view>
+</view>

@@ -1,0 +1,25 @@
+.page { padding: 48rpx 32rpx 72rpx; }
+.heading { font-size: 48rpx; font-weight: 700; letter-spacing: -1rpx; }
+.subtitle { color: #788398; font-size: 26rpx; margin: 16rpx 0 40rpx; }
+.card { background: #fff; border-radius: 28rpx; padding: 32rpx; margin-bottom: 24rpx; box-shadow: 0 12rpx 40rpx rgba(28, 45, 83, .04); }
+.card-title { font-size: 32rpx; font-weight: 600; }
+.card-head { display: flex; align-items: center; justify-content: space-between; }
+.label { font-size: 26rpx; color: #59667b; margin: 28rpx 0 12rpx; }
+.input { box-sizing: border-box; height: 96rpx; padding: 0 24rpx; background: #f5f7fb; border-radius: 16rpx; font-size: 30rpx; }
+.code { margin-top: 24rpx; }
+.primary { margin-top: 32rpx; background: #3269f5; color: #fff; height: 96rpx; line-height: 96rpx; font-weight: 600; }
+.primary[disabled] { background: #c4d2f5; color: #fff; }
+.hint { color: #8290a4; font-size: 24rpx; line-height: 1.7; margin-top: 20rpx; }
+.small-button { margin: 0; padding: 0 20rpx; font-size: 24rpx; line-height: 64rpx; background: #f2f5fb; color: #3269f5; }
+.device-picker { margin-top: 24rpx; padding: 24rpx; background: #f5f7fb; border-radius: 16rpx; font-size: 28rpx; }
+.arrow { float: right; color: #788398; }
+.music-card { text-align: center; padding-top: 40rpx; }
+.music-icon { width: 112rpx; height: 112rpx; line-height: 112rpx; border-radius: 32rpx; margin: 0 auto 24rpx; background: #edf3ff; color: #3269f5; font-size: 64rpx; }
+.track-title { font-size: 36rpx; font-weight: 600; }
+.track-caption { margin-top: 12rpx; color: #8290a4; font-size: 24rpx; }
+.actions { display: flex; gap: 20rpx; margin-top: 20rpx; }
+.secondary { flex: 1; background: #f2f5fb; color: #52627a; margin: 0; line-height: 84rpx; }
+.status { font-size: 26rpx; color: #59667b; margin-top: 28rpx; }
+.text-button { color: #788398; background: transparent; font-size: 26rpx; margin-top: 20rpx; }
+.notice { margin-top: 24rpx; background: #eaf2ff; padding: 24rpx; border-radius: 16rpx; color: #315d99; font-size: 26rpx; line-height: 1.6; overflow-wrap: anywhere; }
+.error { background: #fff0ee; color: #b84a39; }
