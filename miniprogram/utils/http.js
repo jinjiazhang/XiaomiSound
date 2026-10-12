@@ -57,30 +57,44 @@ class CookieJar {
   }
 }
 class HttpClient {
-  constructor(platform, allowedHosts) { this.platform=platform; this.allowedHosts=allowedHosts; this.jar=new CookieJar() }
+  constructor(platform, allowedHosts) { this.platform=platform; this.allowedHosts=allowedHosts; this.jar=new CookieJar(); this.diagnostics=[] }
   async request(url, options={}, depth=0) {
-    const {host}=parseUrl(url)
+    const {host,path}=parseUrl(url)
     if (!this.allowedHosts.includes(host)) throw new Error('登录跳转需要额外的域名配置：'+host)
     const header=Object.assign({},options.headers)
     const cookie=this.jar.header(url,options.cookies)
     if (cookie) header.Cookie=cookie
     if (options.data) header['Content-Type']='application/x-www-form-urlencoded'
+    const stage=options.stage || '小米请求'
+    const started=Date.now()
+    const record={stage,host,path,method:options.method || (options.data?'POST':'GET')}
     const response=await new Promise((resolve,reject)=>this.platform.request({
       url, method:options.method || (options.data?'POST':'GET'), header,
       data:options.data ? form(options.data) : undefined, dataType:'text', timeout:20000,
       success:resolve,
-      fail:()=>reject(new Error('请求 '+host+' 失败，请检查网络、合法域名和 HTTPS 配置'))
+      fail:()=>{
+        this.diagnostics.push(Object.assign({},record,{result:'network-failure'}))
+        reject(new Error(stage+'：请求 '+host+' 失败，请检查网络、合法域名和 HTTPS 配置'))
+      }
     }))
+    // Record only a fixed endpoint path and status. Never include query parameters,
+    // response bodies, headers, passwords, account identifiers or cookie values.
+    this.diagnostics.push(Object.assign({},record,{
+      http:response.statusCode,elapsedMs:Date.now()-started,
+      cookieCount:Array.isArray(response.cookies)?response.cookies.length:0
+    }))
+    this.diagnostics=this.diagnostics.slice(-30)
     this.jar.capture(url,response)
     // Some runtimes follow redirects internally. Only visible hops can be handled here.
     const location=headerValue(response.header,'location')
     if (response.statusCode>=300 && response.statusCode<400 && location) {
       if (depth>=5) throw new Error('登录跳转次数过多')
       const next=location.startsWith('/') ? 'https://'+host+location : location
-      return this.request(next,{headers:options.headers},depth+1)
+      return this.request(next,{headers:options.headers,stage},depth+1)
     }
     if (response.statusCode<200 || response.statusCode>=300) {
-      const error=new Error('请求 '+host+' 返回 HTTP '+response.statusCode)
+      const hint=response.statusCode===403?'。请求已到达服务器并被拒绝；这不是“未配置合法域名”的报错':''
+      const error=new Error(stage+'：请求 '+host+path+' 返回 HTTP '+response.statusCode+hint)
       error.statusCode=response.statusCode
       throw error
     }

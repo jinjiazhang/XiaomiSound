@@ -48,4 +48,5 @@
   </block>
   <view wx:if="{{message}}" class="notice" role="status">{{message}}</view>
   <view wx:if="{{error}}" class="notice error" role="alert">{{error}}</view>
+  <button wx:if="{{error}}" class="text-button" bindtap="copyDiagnostics">复制诊断信息</button>
 </view>

@@ -53,6 +53,16 @@ test('unknown domains blocked and network errors do not expose URLs or tokens',a
   await assert.rejects(()=>client.request('https://evil.example/'),/额外的域名/)
   await assert.rejects(()=>client.request('https://account.xiaomi.com/pass?token=secret'),error=>!error.message.includes('secret'))
 })
+test('403 identifies the login step and diagnostic output excludes credentials',async()=>{
+  const p=platform([{url:'serviceLoginAuth2',status:403,header:{'Set-Cookie':'secret=value'},data:{token:'hidden'}}])
+  const http=new HttpClient(p,config.allowedHosts)
+  await assert.rejects(()=>http.json('https://account.xiaomi.com/pass/serviceLoginAuth2?token=secret',{
+    stage:'提交账号密码',data:{user:'private-user',hash:'private-hash'},cookies:{passToken:'private-token'}
+  }),error=>error.message.includes('提交账号密码') && error.message.includes('/pass/serviceLoginAuth2') && !error.message.includes('?'))
+  const report=JSON.stringify(http.diagnostics)
+  assert.ok(report.includes('403'))
+  for (const secret of ['private-user','private-hash','private-token','hidden','value','token=secret']) assert.ok(!report.includes(secret))
+})
 test('password login validates token and stores no password',async()=>{
   const p=platform([
     {url:'serviceLogin?',data:{code:70016,qs:'query',_sign:'sign',callback:'callback'}},

@@ -100,6 +100,11 @@ Page({
     })
   },
   refreshStatus() { this.run(()=>this.loadStatus(this.requireDevice())) },
+  copyDiagnostics() {
+    const platform=wx.getDeviceInfo?wx.getDeviceInfo():{}
+    const report=Object.assign(this.client.diagnostics(),{platform:platform.platform||'unknown'})
+    wx.setClipboardData({data:JSON.stringify(report,null,2)})
+  },
   logout() {
     if (this.data.busy) return
     this.client.logout()
