@@ -1,6 +1,6 @@
 module.exports = {
-  audioUrl: 'https://samplelib.com/mp3/sample-12s.mp3',
-  audioTitle: '12 秒测试音乐',
+  audioUrl: 'https://videos-1251254325.cos.ap-shanghai.myqcloud.com/Infinite_Universe.mp3',
+  audioTitle: 'Infinite Universe',
   storageKey: 'xiaomi-sound.session.v1',
   cloudEnv: 'xiaomi-sound-d5gon4j9x46357e9c',
   loginFunction: 'xiaomiLogin',

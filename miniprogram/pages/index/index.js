@@ -14,7 +14,11 @@ Page({
   },
   onInput(event) {
     const field=event.currentTarget.dataset.field
-    if (['account','password','code'].includes(field)) this.setData({[field]:event.detail.value})
+    if (['account','password','code','audioUrl'].includes(field)) {
+      const value=event.detail.value
+      this.setData({[field]:value})
+      if (field==='audioUrl') this.setData({audioTitle:value.trim()===config.audioUrl?config.audioTitle:'自定义音频'})
+    }
   },
   async run(action) {
     if (this.data.busy) return
@@ -84,7 +88,7 @@ Page({
   play() {
     this.run(async()=>{
       const device=this.requireDevice()
-      await this.client.play(device)
+      await this.client.play(device,this.data.audioUrl)
       this.setData({message:'播放指令已发送',statusText:'指令已发送，等待确认'})
       // A successful command response is not proof that the speaker fetched the MP3.
       await new Promise(resolve=>setTimeout(resolve,1200))

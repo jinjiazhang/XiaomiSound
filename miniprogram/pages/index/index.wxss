@@ -17,6 +17,8 @@
 .music-icon { width: 112rpx; height: 112rpx; line-height: 112rpx; border-radius: 32rpx; margin: 0 auto 24rpx; background: #edf3ff; color: #3269f5; font-size: 64rpx; }
 .track-title { font-size: 36rpx; font-weight: 600; }
 .track-caption { margin-top: 12rpx; color: #8290a4; font-size: 24rpx; }
+.audio-label { text-align: left; }
+.audio-url { width: 100%; height: 160rpx; padding: 20rpx 24rpx; font-size: 26rpx; line-height: 1.5; text-align: left; overflow-wrap: anywhere; }
 .actions { display: flex; gap: 20rpx; margin-top: 20rpx; }
 .secondary { flex: 1; background: #f2f5fb; color: #52627a; margin: 0; line-height: 84rpx; }
 .status { font-size: 26rpx; color: #59667b; margin-top: 28rpx; }

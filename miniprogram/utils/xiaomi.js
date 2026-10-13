@@ -93,11 +93,14 @@ class XiaomiClient {
     if (result.data && typeof result.data==='object' && result.data.code!==undefined && result.data.code!==0) check(result.data,'设备执行')
     return result.data
   }
-  async play(device) {
-    if (!MUSIC_API.includes(device.hardware)) return this.ubus(device,'player_play_url',{url:config.audioUrl,type:2,media:'app_ios'})
+  async play(device,audioUrl=config.audioUrl) {
+    const url=typeof audioUrl==='string'?audioUrl.trim():''
+    if (!url) throw new Error('请填写音频地址')
+    if (!/^https?:\/\/[^/?#\s]+(?:[/?#][^\s]*)?$/i.test(url)) throw new Error('请填写有效的 HTTP 或 HTTPS 音频地址')
+    if (!MUSIC_API.includes(device.hardware)) return this.ubus(device,'player_play_url',{url,type:2,media:'app_ios'})
     const audioId=String(Date.now())
     const music={payload:{audio_type:'',audio_items:[{
-      item_id:{audio_id:audioId,cp:{album_id:'-1',episode_index:0,id:'355454500',name:'xiaowei'}},stream:{url:config.audioUrl}
+      item_id:{audio_id:audioId,cp:{album_id:'-1',episode_index:0,id:'355454500',name:'xiaowei'}},stream:{url}
     }],list_params:{listId:'-1',loadmore_offset:0,origin:'xiaowei',type:'MUSIC'}},play_behavior:'REPLACE_ALL'}
     return this.ubus(device,'player_play_music',{startaudioid:audioId,music:JSON.stringify(music)})
   }
@@ -110,7 +113,7 @@ class XiaomiClient {
     }
     return data
   }
-  diagnostics() { return {version:'0.2.1',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  diagnostics() { return {version:'0.2.2',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null

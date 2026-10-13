@@ -35,7 +35,9 @@
     <view class="card music-card">
       <view class="music-icon">♫</view>
       <view class="track-title">{{audioTitle}}</view>
-      <view class="track-caption">固定音频 · MP3</view>
+      <view class="track-caption">填写音频链接，发送到音箱播放</view>
+      <view class="label audio-label">音频地址</view>
+      <textarea class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" placeholder="https://example.com/audio.mp3" maxlength="-1" disabled="{{busy}}" />
       <button class="primary" loading="{{busy}}" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="play">在音箱播放</button>
       <view class="actions">
         <button class="secondary" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="stop">停止</button>
