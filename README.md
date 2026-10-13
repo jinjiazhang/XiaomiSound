@@ -52,9 +52,9 @@ npm run deploy:cloud
 
 0.2.1 修复验证方式发现接口返回代码 2 时的短信回退，与 MiService 的现有行为保持一致；短信验证初始化和发送接口仍必须返回成功。
 
-短信验证真机测试已通过；随后到 `/sts` 的未签名跳转返回 401。云端现已在该跳转前停下，恢复 `serviceLogin` 会话，再使用 `nonce` 和 `ssecurity` 生成 `clientSign` 换取凭证；真实账号重试仍待验证。小程序客户端保持 0.2.1，云端修复无需重新上传小程序。
+短信验证真机测试已通过；随后到 `/sts` 的未签名跳转返回 401。云端现已在该跳转前停下，恢复 `serviceLogin` 会话，再使用 `nonce` 和 `ssecurity` 生成 `clientSign` 换取凭证；用户已确认小程序登录成功，实际音箱播放待验证。小程序客户端保持 0.2.1，云端修复无需重新上传小程序。
 
-发现 `serviceLogin` 返回的 `nonce` 为 19 位 JSON 整数，原先 `JSON.parse` 转成 JavaScript Number 时丢失精度，造成 `clientSign` 错误及 STS 401。云端解析现将超出安全范围的整数保留为字符串。真实小米账号会话本地实测：恢复登录、STS 换取凭证、设备列表验证均 HTTP 200；云端及小程序完整播放仍需真机验证。
+发现 `serviceLogin` 返回的 `nonce` 为 19 位 JSON 整数，原先 `JSON.parse` 转成 JavaScript Number 时丢失精度，造成 `clientSign` 错误及 STS 401。云端解析现将超出安全范围的整数保留为字符串。真实小米账号会话本地实测：恢复登录、STS 换取凭证、设备列表验证均 HTTP 200；用户已确认云端及小程序登录成功，完整播放仍需真机验证。
 
 ## 数据与会话
 
@@ -90,3 +90,18 @@ npm test
 - https://github.com/Yonsm/MiService
 
 认证流程参考 MiService 3.0.1；没有导入 MiService。云端使用 Node.js 原生 HTTPS 和 crypto，微信环境访问使用 wx-server-sdk。
+
+## 本地部署凭据
+
+本机工程的 `.private/` 保存上传密钥 `private.wxa0a6030da19850ad.key` 和用于本地音箱测试的 `miservice.token`。目录权限 700、文件权限 600，整个目录及所有 `.key` 文件均被 Git 忽略，部署脚本也排除该目录。它们不会随代码推送或进入小程序包，换电脑需要单独复制。
+
+当前小程序上传和云端小米登录不需要微信 AppSecret 或 CloudBase PublishableKey；小米账号密码仍由用户在小程序中输入。环境 ID、AppID 已在工程配置中。
+
+```sh
+npm install
+npm run deploy:mini
+# 仅重新生成预览二维码
+npm run deploy:mini -- --preview
+```
+
+脚本默认读取本机 `.private/` 中的上传密钥，生成的二维码也保存于该目录；可以通过 `MINIPROGRAM_PRIVATE_KEY_PATH` 覆盖路径。当前环境的云函数 CI 上传返回 `env not found`，云函数仍使用 CloudBase 网页代码包部署，小程序上传可使用上述脚本。
