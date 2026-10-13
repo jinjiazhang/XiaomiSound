@@ -80,7 +80,15 @@ class AuthClient {
     },true,'提交验证码'))
     check(result,'验证码验证',true)
     if (!result.location) throw new Error('验证未完成，请检查验证码或重新登录')
-    await this.http.request(result.location.startsWith('/')?ACCOUNT+result.location:result.location,this.accountOptions(undefined,true,'完成验证跳转'))
+    const resumeOptions=this.accountOptions(undefined,true,'完成验证跳转')
+    // Account redirects establish passToken cookies. The final STS redirect
+    // lacks clientSign; exchange it only after serviceLogin supplies nonce and
+    // ssecurity. Following it here would fail with 401 before login can resume.
+    resumeOptions.stopBeforeRedirect=next=>{
+      const target=new URL(next)
+      return ['api2.mina.mi.com','sts.api.mina.mi.com'].includes(target.hostname) && target.pathname==='/sts'
+    }
+    await this.http.request(result.location.startsWith('/')?ACCOUNT+result.location:result.location,resumeOptions)
     const auth=check(await this.http.json(ACCOUNT+'/pass/serviceLogin?sid=micoapi&_json=true',this.accountOptions(undefined,false,'恢复登录会话')),'完成登录')
     await this.finishLogin(auth)
     this.pending=null

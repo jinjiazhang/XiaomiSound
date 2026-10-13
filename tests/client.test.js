@@ -104,6 +104,38 @@ test('OTP login keeps verification cookies and completes without storing credent
   assert.ok(client.session)
   assert.equal(p.calls.length,11)
 })
+test('OTP account redirects stop before unsigned STS and exchange with clientSign',async()=>{
+  const p=platform([
+    {url:'/identity/auth/verifyPhone?_dc=',data:{code:0,location:'/identity/result/check'}},
+    {url:'/identity/result/check',status:302,header:{Location:'/pass/serviceLoginAuth2/end'},cookies:['verification=accepted; Path=/']},
+    {url:'/pass/serviceLoginAuth2/end',status:302,header:{Location:'https://api2.mina.mi.com/sts?ticket=unsigned'},cookies:['passToken=account-token; Path=/']},
+    {url:'/pass/serviceLogin?',data:{...auth,location:'https://api2.mina.mi.com/sts?ticket=fresh'},inspect:r=>assert.ok(r.header.Cookie.includes('passToken=account-token'))},
+    {url:'https://api2.mina.mi.com/sts?',cookies:['serviceToken=validated-token; Path=/'],inspect:r=>{
+      const url=new URL(r.url)
+      assert.equal(url.searchParams.get('ticket'),'fresh')
+      assert.equal(url.searchParams.get('clientSign'),base64(sha1('nonce=123&security')))
+      assert.ok(!(r.header.Cookie||'').includes('account-token'))
+    }},
+    {url:'/admin/v2/device_list',data:{code:0,data:[]}}
+  ])
+  const client=new AuthClient(p)
+  client.pending={flag:4,method:'Phone'}
+  await client.submitCode('123456')
+  assert.equal(client.session.serviceToken,'validated-token')
+  assert.equal(client.pending,null)
+  assert.equal(p.calls.length,6)
+  assert.ok(!p.calls.some(r=>r.url.includes('ticket=unsigned')))
+})
+test('OTP account redirect errors are not swallowed',async()=>{
+  const p=platform([
+    {url:'/identity/auth/verifyPhone?_dc=',data:{code:0,location:'/identity/result/check'}},
+    {url:'/identity/result/check',status:401}
+  ])
+  const client=new AuthClient(p)
+  client.pending={flag:4,method:'Phone'}
+  await assert.rejects(()=>client.submitCode('123456'),/HTTP 401/)
+  assert.equal(client.session,null)
+})
 test('discovery code 2 falls back to SMS only after verification and sending succeed',async()=>{
   for (const sendCode of [0, 70001]) {
     const p=platform([

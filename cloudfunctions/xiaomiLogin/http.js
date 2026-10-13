@@ -90,7 +90,10 @@ class HttpClient {
     if (response.statusCode>=300 && response.statusCode<400 && location) {
       if (depth>=5) throw new Error('登录跳转次数过多')
       const next=location.startsWith('/') ? 'https://'+host+location : location
-      return this.request(next,{headers:options.headers,stage},depth+1)
+      const nextHost=parseUrl(next).host
+      if (!this.allowedHosts.includes(nextHost)) throw new Error('登录跳转需要额外的域名配置：'+nextHost)
+      if (options.stopBeforeRedirect && options.stopBeforeRedirect(next)) return {response,url,redirectUrl:next}
+      return this.request(next,{headers:options.headers,stage,stopBeforeRedirect:options.stopBeforeRedirect},depth+1)
     }
     if (response.statusCode<200 || response.statusCode>=300) {
       const hint=response.statusCode===403?'。请求已到达服务器并被拒绝；这不是“未配置合法域名”的报错':''
