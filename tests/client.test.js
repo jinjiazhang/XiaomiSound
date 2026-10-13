@@ -28,6 +28,27 @@ function platform(steps, saved) {
 }
 const auth={code:0,userId:'test-user',ssecurity:'security',nonce:123,
   location:'https://sts.api.mina.mi.com/sts?ticket=example'}
+test('Xiaomi 19-digit nonce survives raw JSON parsing and signs exactly',async()=>{
+  const {parseJsonExactIntegers,HttpClient:CloudHttp}=require('../cloudfunctions/xiaomiLogin/http')
+  const nonce='1234567890123456789'
+  const body='&&&START&&&{"code":0,"nonce":'+nonce+',"ssecurity":"security","userId":"test-user","location":"https://api2.mina.mi.com/sts?ticket=fixture","text":"nonce 1234567890123456789 \\"123\\"","small":123,"fraction":1.23,"exponent":1e3}'
+  const parsed=parseJsonExactIntegers(body)
+  assert.equal(parsed.nonce,nonce)
+  assert.equal(parsed.small,123)
+  assert.equal(parsed.fraction,1.23)
+  assert.equal(parsed.exponent,1000)
+  assert.equal(parsed.text,'nonce 1234567890123456789 "123"')
+  assert.equal(parseJsonExactIntegers('{"nonce":-1234567890123456789}').nonce,'-1234567890123456789')
+  const http=new CloudHttp({request:r=>r.success({statusCode:200,header:{},data:body})},AUTH_HOSTS)
+  const authData=await http.json('https://account.xiaomi.com/pass/serviceLogin')
+  const p=platform([
+    {url:'/sts?',cookies:['serviceToken=exact-token; Path=/'],inspect:r=>assert.equal(new URL(r.url).searchParams.get('clientSign'),base64(sha1('nonce='+nonce+'&security')))},
+    {url:'/admin/v2/device_list',data:{code:0,data:[]}}
+  ])
+  const client=new AuthClient(p)
+  await client.finishLogin(authData)
+  assert.equal(client.session.serviceToken,'exact-token')
+})
 test('Cookie jar respects host, domain, path boundary, expiry and combined Expires headers',()=>{
   const jar=new CookieJar()
   jar.capture('https://account.xiaomi.com/pass/login',{header:{'Set-Cookie':

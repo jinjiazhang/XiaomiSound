@@ -10,6 +10,15 @@ function headerValue(headers, name) {
   const key = Object.keys(headers || {}).find(k => k.toLowerCase() === name.toLowerCase())
   return key ? headers[key] : undefined
 }
+function parseJsonExactIntegers(body) {
+  // Xiaomi nonce values exceed Number.MAX_SAFE_INTEGER. Quote integer tokens
+  // before JSON.parse rounds them. Match complete strings first so digits inside
+  // a string (including escaped quotes) are never rewritten.
+  const text=String(body).replace(/^&&&START&&&/,'')
+  const exact=text.replace(/"(?:\\.|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g,token=>
+    /^-?\d+$/.test(token) && !Number.isSafeInteger(Number(token)) ? JSON.stringify(token) : token)
+  return JSON.parse(exact)
+}
 class CookieJar {
   constructor() { this.cookies = [] }
   capture(url, response) {
@@ -107,8 +116,8 @@ class HttpClient {
     const {response}=await this.request(url,options)
     const body=response.data
     if (typeof body==='object' && body!==null) return body
-    try { return JSON.parse(String(body).replace(/^&&&START&&&/,'')) }
+    try { return parseJsonExactIntegers(body) }
     catch (_) { throw new Error('小米返回了非 JSON 内容，可能需要网页验证') }
   }
 }
-module.exports={CookieJar,HttpClient,form,parseUrl}
+module.exports={CookieJar,HttpClient,form,parseUrl,parseJsonExactIntegers}
