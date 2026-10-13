@@ -55,9 +55,13 @@ class AuthClient {
   async startVerification(notificationUrl) {
     const url=notificationUrl.startsWith('/')?ACCOUNT+notificationUrl:notificationUrl
     await this.http.request(url,this.accountOptions(undefined,true,'建立验证会话'))
-    const result=check(await this.http.json(ACCOUNT+'/identity/list?'+form({
+    const result=await this.http.json(ACCOUNT+'/identity/list?'+form({
       sid:queryValue(url,'sid')||'micoapi',supportedMask:0,_locale:'zh_CN',context:queryValue(url,'context')
-    }),this.accountOptions(undefined,true,'查询验证方式')),'查询验证方式',true)
+    }),this.accountOptions(undefined,true,'查询验证方式'))
+    // This discovery endpoint can return code 2 after authStart. MiService
+    // proceeds to Phone verification in this case; the verification endpoint
+    // and SMS send must still both succeed before we accept an OTP challenge.
+    if (!result || (result.code!==2 && result.code!==0 && result.code!==undefined)) check(result,'查询验证方式',true)
     const flag=result.flag===undefined?4:result.flag
     if (flag!==4 && flag!==8) throw new Error('需要额外网页验证，当前支持短信或邮箱验证码登录')
     const method=flag===8?'Email':'Phone'

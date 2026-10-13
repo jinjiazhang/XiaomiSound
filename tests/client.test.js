@@ -104,6 +104,31 @@ test('OTP login keeps verification cookies and completes without storing credent
   assert.ok(client.session)
   assert.equal(p.calls.length,11)
 })
+test('discovery code 2 falls back to SMS only after verification and sending succeed',async()=>{
+  for (const sendCode of [0, 70001]) {
+    const p=platform([
+      {url:'/fe/service/identity/authStart'},
+      {url:'/identity/list?',data:{code:2}},
+      {url:'/identity/auth/verifyPhone?',data:{code:0}},
+      {url:'/identity/auth/sendPhoneTicket',data:{code:sendCode}}
+    ])
+    const client=new AuthClient(p)
+    if (sendCode===0) assert.deepEqual(await client.startVerification('/fe/service/identity/authStart?context=fixture'),{otp:true,method:'手机'})
+    else {
+      await assert.rejects(()=>client.startVerification('/fe/service/identity/authStart?context=fixture'),/发送验证码失败/)
+      assert.equal(client.pending,null)
+    }
+  }
+})
+test('other discovery errors are rejected before a verification request',async()=>{
+  const p=platform([
+    {url:'/fe/service/identity/authStart'},
+    {url:'/identity/list?',data:{code:99}}
+  ])
+  const client=new AuthClient(p)
+  await assert.rejects(()=>client.startVerification('/fe/service/identity/authStart?context=fixture'),/查询验证方式失败/)
+  assert.equal(client.pending,null)
+})
 test('missing redirect cookie fails explicitly without persisting a session',async()=>{
   const p=platform([{url:'serviceLogin?',data:auth},{url:'clientSign='}])
   const client=new AuthClient(p)
