@@ -44,11 +44,10 @@
         <button class="secondary" bindtap="openQueue">播放列表 · {{queue.length}}</button>
       </view>
       <view class="actions">
-        <button class="secondary" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="stop">停止</button>
         <button class="secondary" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="refreshStatus">查询状态</button>
       </view>
       <view class="status">{{statusText}}<text wx:if="{{volumeText}}"> · 音量 {{volumeText}}</text></view>
-      <view class="hint">使用音箱当前音量。若音乐重复播放，可点“停止”。</view>
+      <view class="hint">点击底部播放器，可暂停或继续播放。</view>
     </view>
     <button class="text-button" disabled="{{busy}}" bindtap="logout">退出登录</button>
   </block>
@@ -75,10 +74,7 @@
       <view wx:if="{{!duration}}" class="progress-note">音箱尚未返回音频时长</view>
       <view class="transport">
         <button size="mini" class="icon-button skip" data-step="-1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="上一首"><view class="previous-shape"></view></button>
-        <view class="transport-main">
         <button size="mini" class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{playbackState === 1 ? '暂停' : '播放'}}"><view wx:if="{{playbackState === 1}}" class="pause-shape"></view><view wx:else class="play-shape"></view><text class="toggle-label">{{playbackState === 1 ? '暂停' : '播放'}}</text></button>
-          <button size="mini" class="icon-button transport-stop" bindtap="stop" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="停止播放"><view class="stop-shape"></view><text>停止</text></button>
-        </view>
         <button size="mini" class="icon-button skip" data-step="1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="下一首"><view class="next-shape"></view></button>
       </view>
       </view>

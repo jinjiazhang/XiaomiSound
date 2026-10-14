@@ -240,15 +240,6 @@ Page({
       finally { await this.loadStatus(device) }
     })
   },
-  stop() {
-    return this.run(async()=>{
-      const device=this.requireDevice()
-      this.commandGeneration=(this.commandGeneration||0)+1
-      await this.client.stop(device)
-      this.setData({message:'停止指令已发送'})
-      await this.syncPlayback(device,0)
-    })
-  },
   refreshStatus() { return this.run(()=>this.loadStatus(this.requireDevice())) },
   copyDiagnostics() {
     const platform=wx.getDeviceInfo?wx.getDeviceInfo():{}

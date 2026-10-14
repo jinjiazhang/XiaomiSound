@@ -110,11 +110,11 @@ test('pause waits for the new device state when the first query is stale',async(
   await p.togglePlayback()
   assert.equal(reads,2);assert.equal(p.data.playbackState,2);assert.equal(p.data.isPlaying,false)
 })
-test('stopping switches back to the play state after delayed confirmation',async()=>{
+test('resume switches back to the pause button after delayed confirmation',async()=>{
   const {p}=page();let reads=0
-  p.data.playbackState=1;p.data.isPlaying=true
-  p.client.stop=async()=>{}
-  p.client.status=async()=>({status:++reads===1?1:0})
-  await p.stop()
-  assert.equal(reads,2);assert.equal(p.data.playbackState,0);assert.equal(p.data.isPlaying,false)
+  p.data.playbackState=2;p.data.isPlaying=false
+  p.client.resume=async()=>{}
+  p.client.status=async()=>({status:++reads===1?2:1})
+  await p.togglePlayback()
+  assert.equal(reads,2);assert.equal(p.data.playbackState,1);assert.equal(p.data.isPlaying,true)
 })
