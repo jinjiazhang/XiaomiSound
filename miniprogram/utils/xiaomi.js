@@ -124,7 +124,7 @@ class XiaomiClient {
     }
     return data
   }
-  diagnostics() { return {version:'0.3.1',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  diagnostics() { return {version:'0.3.2',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null

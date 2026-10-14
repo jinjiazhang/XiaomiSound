@@ -7,7 +7,7 @@ Page({
     busy:false,devices:[],selectedIndex:0,selectedDevice:null,
     audioTitle:config.audioTitle,audioUrl:config.audioUrl,
     statusText:'尚未查询',volumeText:'',message:'',error:'',
-    playerOpen:false,queueOpen:false,queue:[],favorites:[],currentIndex:0,currentTitle:config.audioTitle,
+    playerOpen:false,queueOpen:false,volumeOpen:false,queue:[],favorites:[],currentIndex:0,currentTitle:config.audioTitle,
     currentArtist:'自定义音频',playbackState:0,isPlaying:false,volume:0,volumeKnown:false,volumeDragging:false,
     positionText:'00:00',durationText:'--:--',duration:0,progress:0,loopType:null,isFavorite:false,canFavorite:false
   },
@@ -22,7 +22,7 @@ Page({
     this.visible=true
     this.startPolling()
   },
-  onHide() { this.visible=false; this.stopPolling(); this.setData({volumeDragging:false}) },
+  onHide() { this.visible=false; this.stopPolling(); this.setData({volumeDragging:false,volumeOpen:false}) },
   onUnload() { this.visible=false; this.stopPolling(); this.disposed=true },
   startPolling() {
     this.stopPolling()
@@ -31,7 +31,7 @@ Page({
           this.data.selectedDevice && this.data.selectedDevice.presence==='online') {
         this.polling=true
         this.loadStatus(this.data.selectedDevice).catch(error=>{
-          if (!this.disposed) this.setData({error:error.message,loggedIn:!!this.client.session,...(!this.client.session?{playerOpen:false,queueOpen:false,selectedDevice:null}:{} )})
+          if (!this.disposed) this.setData({error:error.message,loggedIn:!!this.client.session,...(!this.client.session?{playerOpen:false,queueOpen:false,volumeOpen:false,selectedDevice:null}:{} )})
         }).finally(()=>{this.polling=false})
       }
     },4000)
@@ -55,7 +55,7 @@ Page({
     } finally {
       if (this.disposed) return
       this.setData({busy:false,loggedIn:!!this.client.session})
-      if (!this.client.session) this.setData({devices:[],selectedDevice:null,playerOpen:false,queueOpen:false,statusText:'尚未查询',volumeText:'',isPlaying:false,volumeKnown:false})
+      if (!this.client.session) this.setData({devices:[],selectedDevice:null,playerOpen:false,queueOpen:false,volumeOpen:false,statusText:'尚未查询',volumeText:'',isPlaying:false,volumeKnown:false})
     }
   },
   login() {
@@ -100,7 +100,7 @@ Page({
     const index=Number(event.detail.value)
     this.commandGeneration=(this.commandGeneration||0)+1
     this.setData({selectedIndex:index,selectedDevice:this.data.devices[index],statusText:'尚未查询',volumeText:'',message:'',error:'',
-      playbackState:0,isPlaying:false,volume:0,volumeKnown:false,volumeDragging:false,positionText:'00:00',durationText:'--:--',duration:0,progress:0,loopType:null,canFavorite:false})
+      playbackState:0,isPlaying:false,volume:0,volumeKnown:false,volumeDragging:false,positionText:'00:00',durationText:'--:--',duration:0,progress:0,loopType:null,canFavorite:false,volumeOpen:false})
     if (this.data.selectedDevice && this.data.selectedDevice.presence==='online') this.refreshStatus()
   },
   requireDevice() {
@@ -192,8 +192,13 @@ Page({
     this.setData({queue,currentIndex,favorites});this.saveLibrary()
   },
   openPlayer() { this.setData({playerOpen:true}) },
-  closePlayer() { this.setData({playerOpen:false}) },
-  openQueue() { this.setData({queueOpen:true}) },
+  closePlayer() { this.setData({playerOpen:false,volumeOpen:false,volumeDragging:false}) },
+  openQueue() { this.setData({queueOpen:true,volumeOpen:false,volumeDragging:false}) },
+  openVolume() {
+    this.setData({volumeOpen:true,queueOpen:false})
+    this.refreshStatus()
+  },
+  closeVolume() { this.setData({volumeOpen:false,volumeDragging:false}) },
   closeQueue() { this.setData({queueOpen:false}) },
   noop() {},
   toggleFavorite() {
@@ -244,6 +249,6 @@ Page({
     this.client.logout()
     this.currentDeviceID=null
     this.setData({loggedIn:false,otp:false,account:'',password:'',code:'',devices:[],selectedDevice:null,
-      statusText:'尚未查询',volumeText:'',message:'已退出并清除本机登录凭证',error:'',playerOpen:false,queueOpen:false,isPlaying:false,volumeKnown:false})
+      statusText:'尚未查询',volumeText:'',message:'已退出并清除本机登录凭证',error:'',playerOpen:false,queueOpen:false,volumeOpen:false,isPlaying:false,volumeKnown:false})
   }
 })
