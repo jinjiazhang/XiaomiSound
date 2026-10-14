@@ -104,6 +104,17 @@ class XiaomiClient {
     }],list_params:{listId:'-1',loadmore_offset:0,origin:'xiaowei',type:'MUSIC'}},play_behavior:'REPLACE_ALL'}
     return this.ubus(device,'player_play_music',{startaudioid:audioId,music:JSON.stringify(music)})
   }
+  pause(device) { return this.ubus(device,'player_play_operation',{action:'pause',media:'app_ios'}) }
+  resume(device) { return this.ubus(device,'player_play_operation',{action:'play',media:'app_ios'}) }
+  setVolume(device,volume) {
+    if (!Number.isInteger(volume) || volume<0 || volume>100) throw new Error('音量应为 0 到 100 的整数')
+    return this.ubus(device,'player_set_volume',{volume,media:'app_ios'})
+  }
+  setLoop(device,type) {
+    if (![0,1,2].includes(type)) throw new Error('播放模式无效')
+    if (MUSIC_API.includes(device.hardware)) throw new Error('当前机型暂不支持远程切换循环模式')
+    return this.ubus(device,'player_set_loop',{media:'common',type})
+  }
   stop(device) { return this.ubus(device,'player_play_operation',{action:'stop',media:'app_ios'}) }
   async status(device) {
     const data=await this.ubus(device,'player_get_play_status',{media:'app_ios'})
@@ -113,7 +124,7 @@ class XiaomiClient {
     }
     return data
   }
-  diagnostics() { return {version:'0.2.2',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  diagnostics() { return {version:'0.3.0',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null
