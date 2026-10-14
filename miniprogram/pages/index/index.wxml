@@ -59,7 +59,7 @@
   <view wx:if="{{loggedIn && selectedDevice}}" class="mini-player" bindtap="openPlayer">
     <view class="mini-art"><view class="orbit"></view><text>♫</text></view>
     <view class="mini-copy"><view class="mini-title">{{currentTitle}}</view><view class="mini-subtitle">{{selectedDevice.name}} · {{statusText}}</view></view>
-    <button size="mini" class="icon-button mini-toggle" catchtap="togglePlayback" aria-label="{{isPlaying ? '暂停' : '播放'}}" disabled="{{busy || selectedDevice.presence !== 'online'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
+    <button size="mini" class="icon-button mini-toggle" catchtap="togglePlayback" aria-label="{{playbackState === 1 ? '暂停' : '播放'}}" disabled="{{busy || selectedDevice.presence !== 'online'}}"><view wx:if="{{playbackState === 1}}" class="pause-shape"></view><view wx:else class="play-shape"></view></button>
     <button size="mini" class="icon-button" catchtap="openQueue" aria-label="播放列表"><view class="list-shape"></view></button>
   </view>
 
@@ -76,7 +76,7 @@
       <view class="transport">
         <button size="mini" class="icon-button skip" data-step="-1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="上一首"><view class="previous-shape"></view></button>
         <view class="transport-main">
-        <button size="mini" class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{isPlaying ? '暂停' : '播放'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
+        <button size="mini" class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{playbackState === 1 ? '暂停' : '播放'}}"><view wx:if="{{playbackState === 1}}" class="pause-shape"></view><view wx:else class="play-shape"></view><text class="toggle-label">{{playbackState === 1 ? '暂停' : '播放'}}</text></button>
           <button size="mini" class="icon-button transport-stop" bindtap="stop" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="停止播放"><view class="stop-shape"></view><text>停止</text></button>
         </view>
         <button size="mini" class="icon-button skip" data-step="1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="下一首"><view class="next-shape"></view></button>

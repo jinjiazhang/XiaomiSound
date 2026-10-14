@@ -21,6 +21,7 @@ Page({
   onShow() {
     this.visible=true
     this.startPolling()
+    if (this.client && this.client.session && this.data.selectedDevice && this.data.selectedDevice.presence==='online') this.refreshStatus()
   },
   onHide() { this.visible=false; this.stopPolling(); this.setData({volumeDragging:false,volumeOpen:false}) },
   onUnload() { this.visible=false; this.stopPolling(); this.disposed=true },
@@ -125,6 +126,15 @@ Page({
     if ([0,1,2].includes(status.loop_type)) patch.loopType=status.loop_type
     this.setData(patch)
   },
+  async syncPlayback(device,expected) {
+    const generation=this.commandGeneration||0
+    for (let attempt=0;attempt<3;attempt++) {
+      if (this.disposed || this.visible===false || generation!==(this.commandGeneration||0)) return
+      await this.loadStatus(device)
+      if (this.data.playbackState===expected || (expected===0 && this.data.playbackState===3)) return
+      if (attempt<2) await new Promise(resolve=>setTimeout(resolve,300))
+    }
+  },
   saveLibrary() { wx.setStorageSync(LIBRARY_KEY,{tracks:this.data.queue,favorites:this.data.favorites}) },
   addTrack() {
     try {
@@ -144,7 +154,7 @@ Page({
     this.setData({currentIndex:index,currentTitle:item.title,currentArtist:'自定义音频 · '+device.name,
       isFavorite:this.data.favorites.includes(item.url),canFavorite:true,progress:0,positionText:'00:00',durationText:'--:--',duration:0,
       message:'播放指令已发送',statusText:'等待音箱确认',playbackState:0,isPlaying:false})
-    await this.loadStatus(device)
+    await this.syncPlayback(device,1)
   },
   play() {
     return this.run(async()=>{
@@ -163,10 +173,11 @@ Page({
     return this.run(async()=>{
       const device=this.requireDevice()
       this.commandGeneration=(this.commandGeneration||0)+1
+      const expected=this.data.playbackState===1?2:1
       if (this.data.playbackState===1) await this.client.pause(device)
       else if (this.data.playbackState===2) await this.client.resume(device)
       else return this.startTrack(this.data.currentIndex)
-      await this.loadStatus(device)
+      await this.syncPlayback(device,expected)
     })
   },
   changeTrack(event) {
@@ -235,7 +246,7 @@ Page({
       this.commandGeneration=(this.commandGeneration||0)+1
       await this.client.stop(device)
       this.setData({message:'停止指令已发送'})
-      await this.loadStatus(device)
+      await this.syncPlayback(device,0)
     })
   },
   refreshStatus() { return this.run(()=>this.loadStatus(this.requireDevice())) },

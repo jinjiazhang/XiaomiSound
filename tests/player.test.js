@@ -13,7 +13,7 @@ function page() {
   const wx={setStorageSync:()=>{},getStorageSync:()=>null}
   vm.runInNewContext(fs.readFileSync(filename,'utf8'),{
     require:createRequire(filename),Page:value=>{definition=value},wx,
-    setInterval:fn=>{timers.set(++next,fn);return next},clearInterval:id=>timers.delete(id)
+    setInterval:fn=>{timers.set(++next,fn);return next},clearInterval:id=>timers.delete(id),setTimeout:fn=>{fn();return 0}
   },{filename})
   const p={...definition,data:JSON.parse(JSON.stringify(definition.data)),setData(patch){Object.assign(this.data,patch)}}
   p.data.queue=[track('https://example.com/one.mp3'),track('https://example.com/two.mp3')]
@@ -83,6 +83,7 @@ test('old poll responses cannot overwrite a command result or another device',as
 })
 test('page lifecycle clears polling on hide and unload',()=>{
   const {p,timers}=page()
+  p.refreshStatus=()=>{}
   p.onShow();assert.equal(timers.size,1)
   p.onShow();assert.equal(timers.size,1)
   p.onHide();assert.equal(timers.size,0)
@@ -99,4 +100,21 @@ test('switching speakers preserves the queue and favorites, clears old playback 
   assert.deepEqual(p.data.favorites,[queue[0].url])
   assert.equal(p.data.isPlaying,false);assert.equal(p.data.volumeKnown,false)
   assert.equal(refreshed,1)
+})
+
+test('pause waits for the new device state when the first query is stale',async()=>{
+  const {p}=page();let reads=0
+  p.data.playbackState=1;p.data.isPlaying=true
+  p.client.pause=async()=>{}
+  p.client.status=async()=>({status:++reads===1?1:2})
+  await p.togglePlayback()
+  assert.equal(reads,2);assert.equal(p.data.playbackState,2);assert.equal(p.data.isPlaying,false)
+})
+test('stopping switches back to the play state after delayed confirmation',async()=>{
+  const {p}=page();let reads=0
+  p.data.playbackState=1;p.data.isPlaying=true
+  p.client.stop=async()=>{}
+  p.client.status=async()=>({status:++reads===1?1:0})
+  await p.stop()
+  assert.equal(reads,2);assert.equal(p.data.playbackState,0);assert.equal(p.data.isPlaying,false)
 })

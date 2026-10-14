@@ -161,3 +161,8 @@
 .page button.transport-stop { width: 80rpx; min-width: 80rpx; max-width: 80rpx; height: 80rpx; flex: 0 0 80rpx; background: #fff; color: #656b78; font-size: 18rpx; flex-direction: column; gap: 7rpx; }
 .transport-stop .stop-shape { width: 22rpx; height: 22rpx; border-radius: 4rpx; }
 .playback-controls .transport { margin-left: 12rpx; margin-right: 12rpx; }
+
+.page button.main-toggle { flex-direction: column; gap: 6rpx; }
+.toggle-label { font-size: 18rpx; line-height: 1; font-weight: 500; }
+.main-toggle .pause-shape { height: 32rpx; }
+.main-toggle .play-shape { border-top-width: 17rpx; border-bottom-width: 17rpx; border-left-width: 26rpx; }
