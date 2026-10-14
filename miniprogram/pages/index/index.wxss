@@ -29,7 +29,7 @@
 .mini-player { position: fixed; left: 24rpx; right: 24rpx; bottom: calc(24rpx + env(safe-area-inset-bottom)); z-index: 20; height: 112rpx; padding: 12rpx 20rpx 12rpx 12rpx; box-sizing: border-box; border-radius: 60rpx; background: #9cafd8; color: #fff; display: flex; align-items: center; gap: 20rpx; box-shadow: 0 10rpx 36rpx rgba(58, 75, 115, .18); }
 .mini-art { width: 88rpx; height: 88rpx; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg,#27213e,#8e86aa 60%,#e7c4d5); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 36rpx; }
 .orbit { position: absolute; width: 70rpx; height: 28rpx; border: 1rpx solid #ded4ec; border-radius: 50%; transform: rotate(-35deg); }
-.mini-copy { flex: 1; min-width: 0; }
+.mini-copy { flex: 1 1 0%; width: 0; min-width: 0; overflow: hidden; }
 .mini-title { font-size: 27rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-subtitle { font-size: 21rpx; opacity: .8; margin-top: 8rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-button { padding: 0; margin: 0; width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: transparent; color: inherit; line-height: 1; border-radius: 50%; flex-shrink: 0; font-size: 48rpx; }
@@ -39,13 +39,14 @@
 .pause-shape { width: 20rpx; height: 28rpx; border-left: 6rpx solid currentColor; border-right: 6rpx solid currentColor; box-sizing: border-box; }
 .list-shape { width: 30rpx; height: 24rpx; border-top: 3rpx solid currentColor; border-bottom: 3rpx solid currentColor; box-sizing: border-box; position: relative; margin: 0 auto; }
 .list-shape::after { content: ''; position: absolute; width: 30rpx; height: 3rpx; background: currentColor; top: 8rpx; left: 0; }
-.player-screen { position: fixed; inset: 0; z-index: 40; background: #fff; color: #17191b; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+.player-screen { position: fixed; top: 0; right: 0; bottom: 0; left: 0; box-sizing: border-box; z-index: 40; background: #fff; color: #17191b; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
 .player-top { padding: 16rpx 32rpx; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .player-top-copy { text-align: center; min-width: 0; }
 .eyebrow { font-size: 20rpx; letter-spacing: 3rpx; color: #8b8e96; }
 .device-name { font-size: 25rpx; margin-top: 8rpx; }
 .collapse { font-size: 58rpx; padding-bottom: 15rpx; }
-.player-body { flex: 1; height: 0; box-sizing: border-box; padding: 20rpx 48rpx 24rpx; }
+.player-body { flex: 1; height: 0; min-height: 0; width: 100%; box-sizing: border-box; }
+.player-content { padding: 20rpx 48rpx 32rpx; box-sizing: border-box; }
 .album-art { width: 100%; height: 0; padding-bottom: 100%; border-radius: 24rpx; background: linear-gradient(140deg,#232034 0%,#4e4664 48%,#ac95ac 100%); position: relative; overflow: hidden; box-shadow: 0 14rpx 30rpx rgba(48,38,66,.14); color: #fff; }
 .album-halo { position: absolute; width: 68%; height: 68%; left: 14%; top: 4%; background: radial-gradient(circle at 35% 30%,#fce6d8,#cbb4d2 33%,#67607e 70%); border-radius: 50%; box-shadow: 0 0 90rpx rgba(236,212,228,.22); }
 .album-orbit { position: absolute; width: 120%; height: 40%; border: 1rpx solid rgba(255,255,255,.5); left: -10%; top: 24%; border-radius: 50%; transform: rotate(-34deg); }
@@ -82,7 +83,7 @@
 .previous-shape::after { content: ''; position: absolute; width: 6rpx; height: 44rpx; background: currentColor; right: 2rpx; top: -22rpx; }
 .stop-button { font-size: 23rpx; color: #8b8e96; background: transparent; margin: 28rpx 0 0; padding: 12rpx 0; line-height: 1.4; }
 .player-message { color: #858994; text-align: center; font-size: 22rpx; margin: 16rpx 0; }
-.sheet-mask { position: fixed; inset: 0; background: rgba(20,23,32,.38); z-index: 60; display: flex; align-items: flex-end; }
+.sheet-mask { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(20,23,32,.38); z-index: 60; display: flex; align-items: flex-end; }
 .queue-sheet { background: #fff; width: 100%; box-sizing: border-box; border-radius: 32rpx 32rpx 0 0; padding: 30rpx 32rpx calc(28rpx + env(safe-area-inset-bottom)); max-height: 90vh; overflow-y: auto; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }.sheet-head .hint { margin-top: 10rpx; font-size: 21rpx; }
 .queue-count { color: #959ba7; font-size: 23rpx; margin-left: 12rpx; }.queue-scroll { max-height: 32vh; margin-top: 24rpx; }
@@ -100,3 +101,24 @@
 .stop-button { margin-top: 16rpx; }
 @media (max-height: 760px) { .album-art { padding-bottom: 80%; } }
 @media (max-height: 640px) { .album-art { padding-bottom: 64%; } }
+
+/* WeChat adds default widths to button:not([size=mini]); selectors here also
+   outrank the native size styles so fixed icon controls cannot stretch. */
+.page button.primary { width: 100%; box-sizing: border-box; padding-left: 0; padding-right: 0; margin-left: 0; margin-right: 0; }
+.page .actions button.secondary { flex: 1 1 0%; width: 0; min-width: 0; box-sizing: border-box; height: 84rpx; padding: 0 8rpx; white-space: nowrap; }
+.page button.small-button { width: auto; flex: 0 0 auto; box-sizing: border-box; font-size: 24rpx; line-height: 64rpx; padding: 0 20rpx; }
+.page button.icon-button { width: 64rpx; min-width: 64rpx; max-width: 64rpx; height: 64rpx; min-height: 0; flex: 0 0 64rpx; box-sizing: border-box; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 48rpx; line-height: 1; }
+.page button.skip { width: 74rpx; min-width: 74rpx; max-width: 74rpx; height: 74rpx; flex-basis: 74rpx; }
+.page .mini-player button.mini-toggle { width: 52rpx; min-width: 52rpx; max-width: 52rpx; height: 52rpx; flex-basis: 52rpx; }
+.page button.main-toggle { width: 108rpx; min-width: 108rpx; max-width: 108rpx; height: 108rpx; min-height: 0; flex: 0 0 108rpx; box-sizing: border-box; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; line-height: 1; }
+.page button.tool-button { width: 0; min-width: 0; max-width: none; flex: 1 1 0%; box-sizing: border-box; padding: 0; white-space: nowrap; display: flex; font-size: 20rpx; line-height: 1.3; border-radius: 0; }
+.page button.text-button,.page button.stop-button { width: auto; max-width: 100%; box-sizing: border-box; }
+.player-top-copy { flex: 1 1 0%; overflow: hidden; padding: 0 16rpx; }
+.device-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.volume-slider { min-width: 0; }
+.queue-playing,.queue-number { flex-shrink: 0; }
+.track-title,.album-name { overflow-wrap: anywhere; }
+/* Keep fixed controls above the home indicator even on older safe-area engines. */
+.mini-player { bottom: 24rpx; bottom: calc(24rpx + constant(safe-area-inset-bottom)); bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.with-player { padding-bottom: 176rpx; padding-bottom: calc(176rpx + constant(safe-area-inset-bottom)); padding-bottom: calc(176rpx + env(safe-area-inset-bottom)); }
+@media (max-width: 350px) { .player-content { padding-left: 32rpx; padding-right: 32rpx; } .mini-player { gap: 14rpx; } .transport { margin-left: 20rpx; margin-right: 20rpx; } }

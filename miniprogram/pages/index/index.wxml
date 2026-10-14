@@ -24,7 +24,7 @@
     <view class="card">
       <view class="card-head">
         <view class="card-title">我的音箱</view>
-        <button class="small-button" disabled="{{busy}}" bindtap="refreshDevices">刷新</button>
+        <button size="mini" class="small-button" disabled="{{busy}}" bindtap="refreshDevices">刷新</button>
       </view>
       <picker wx:if="{{devices.length}}" mode="selector" range="{{devices}}" range-key="label" value="{{selectedIndex}}" bindchange="selectDevice" disabled="{{busy}}">
         <view class="device-picker">{{selectedDevice.label}} <text class="arrow">⌄</text></view>
@@ -37,7 +37,7 @@
       <view class="track-title">{{audioTitle}}</view>
       <view class="track-caption">填写音频链接，发送到音箱播放</view>
       <view class="label audio-label">音频地址</view>
-      <textarea class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" placeholder="https://example.com/audio.mp3" maxlength="-1" disabled="{{busy}}" />
+      <textarea wx:if="{{!playerOpen && !queueOpen}}" class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" placeholder="https://example.com/audio.mp3" maxlength="-1" disabled="{{busy}}" />
       <button class="primary" loading="{{busy}}" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="play">在音箱播放</button>
       <view class="actions">
         <button class="secondary" disabled="{{busy}}" bindtap="addTrack">加入列表</button>
@@ -59,41 +59,41 @@
   <view wx:if="{{loggedIn && selectedDevice}}" class="mini-player" bindtap="openPlayer">
     <view class="mini-art"><view class="orbit"></view><text>♫</text></view>
     <view class="mini-copy"><view class="mini-title">{{currentTitle}}</view><view class="mini-subtitle">{{selectedDevice.name}} · {{statusText}}</view></view>
-    <button class="icon-button mini-toggle" catchtap="togglePlayback" aria-label="{{isPlaying ? '暂停' : '播放'}}" disabled="{{busy || selectedDevice.presence !== 'online'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
-    <button class="icon-button" catchtap="openQueue" aria-label="播放列表"><view class="list-shape"></view></button>
+    <button size="mini" class="icon-button mini-toggle" catchtap="togglePlayback" aria-label="{{isPlaying ? '暂停' : '播放'}}" disabled="{{busy || selectedDevice.presence !== 'online'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
+    <button size="mini" class="icon-button" catchtap="openQueue" aria-label="播放列表"><view class="list-shape"></view></button>
   </view>
 
   <view wx:if="{{loggedIn && playerOpen && selectedDevice}}" class="player-screen">
-    <view class="player-top"><button class="icon-button collapse" bindtap="closePlayer" aria-label="收起播放器">⌄</button><view class="player-top-copy"><view class="eyebrow">正在播放</view><view class="device-name">{{selectedDevice.name}}</view></view><button class="icon-button" bindtap="refreshStatus" disabled="{{busy}}" aria-label="刷新状态">↻</button></view>
-    <scroll-view scroll-y class="player-body">
+    <view class="player-top"><button size="mini" class="icon-button collapse" bindtap="closePlayer" aria-label="收起播放器">⌄</button><view class="player-top-copy"><view class="eyebrow">正在播放</view><view class="device-name">{{selectedDevice.name}}</view></view><button size="mini" class="icon-button" bindtap="refreshStatus" disabled="{{busy}}" aria-label="刷新状态">↻</button></view>
+    <scroll-view scroll-y class="player-body"><view class="player-content">
       <view class="album-art"><view class="album-halo"></view><view class="album-orbit orbit-one"></view><view class="album-orbit orbit-two"></view><view class="album-star star-one"></view><view class="album-star star-two"></view><view class="album-caption">SOUND AT HOME</view><view class="album-name">{{currentTitle}}</view><view class="album-small">让声音，填满整个宇宙</view></view>
       <view class="now-title">{{currentTitle}}</view><view class="now-artist">{{currentArtist}}</view>
       <view class="progress-track"><view class="progress-fill" style="width: {{progress}}%;"><view class="progress-thumb"></view></view></view>
       <view class="time-row"><text>{{positionText}}</text><text>{{durationText}}</text></view>
       <view class="progress-note">{{duration ? '音箱播放进度 · 每 4 秒同步' : '音箱尚未返回音频时长'}} · {{statusText}}</view>
       <view class="player-tools">
-        <button class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="changeLoop"><text class="tool-symbol">{{loopType === 2 ? '⤨' : '↻'}}</text><text>{{loopType === null ? '播放模式' : (loopType === 0 ? '单曲循环' : (loopType === 1 ? '顺序播放' : '随机播放'))}}</text></button>
-        <button class="tool-button" bindtap="openQueue"><view class="list-shape"></view><text>播放列表</text></button>
-        <button class="tool-button {{isFavorite ? 'favorite-active' : ''}}" bindtap="toggleFavorite" disabled="{{!canFavorite}}"><text class="tool-symbol">{{isFavorite ? '♥' : '♡'}}</text><text>{{isFavorite ? '已收藏链接' : '收藏链接'}}</text></button>
+        <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="changeLoop"><text class="tool-symbol">{{loopType === 2 ? '⤨' : '↻'}}</text><text>{{loopType === null ? '播放模式' : (loopType === 0 ? '单曲循环' : (loopType === 1 ? '顺序播放' : '随机播放'))}}</text></button>
+        <button size="mini" class="tool-button" bindtap="openQueue"><view class="list-shape"></view><text>播放列表</text></button>
+        <button size="mini" class="tool-button {{isFavorite ? 'favorite-active' : ''}}" bindtap="toggleFavorite" disabled="{{!canFavorite}}"><text class="tool-symbol">{{isFavorite ? '♥' : '♡'}}</text><text>{{isFavorite ? '已收藏链接' : '收藏链接'}}</text></button>
       </view>
       <view class="volume-row"><text class="volume-label">音量</text><slider class="volume-slider" min="0" max="100" step="1" value="{{volume}}" activeColor="#fa2360" backgroundColor="#eceef2" block-color="#ffffff" block-size="24" bindchanging="onVolumeChanging" bindchange="changeVolume" disabled="{{busy || !volumeKnown || selectedDevice.presence !== 'online'}}" aria-label="音箱音量"/><text class="volume-number">{{volumeKnown ? volume + '%' : '--'}}</text></view>
       <view class="transport">
-        <button class="icon-button skip" data-step="-1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="上一首"><view class="previous-shape"></view></button>
-        <button class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{isPlaying ? '暂停' : '播放'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
-        <button class="icon-button skip" data-step="1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="下一首"><view class="next-shape"></view></button>
+        <button size="mini" class="icon-button skip" data-step="-1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="上一首"><view class="previous-shape"></view></button>
+        <button size="mini" class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{isPlaying ? '暂停' : '播放'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
+        <button size="mini" class="icon-button skip" data-step="1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="下一首"><view class="next-shape"></view></button>
       </view>
       <button class="stop-button" bindtap="stop" disabled="{{busy || selectedDevice.presence !== 'online'}}">停止播放</button>
       <view wx:if="{{message}}" class="player-message">{{message}}</view><view wx:if="{{error}}" class="notice error">{{error}}</view><button wx:if="{{error}}" class="text-button" bindtap="copyDiagnostics">复制诊断信息</button>
-    </scroll-view>
+    </view></scroll-view>
   </view>
 
   <view wx:if="{{loggedIn && queueOpen}}" class="sheet-mask" bindtap="closeQueue">
     <view class="queue-sheet" catchtap="noop">
-      <view class="sheet-head"><view><view class="card-title">播放列表 <text class="queue-count">{{queue.length}}</text></view><view class="hint">本机保存 · 点击音频播放，左右按钮切歌</view></view><button class="icon-button" bindtap="closeQueue" aria-label="关闭播放列表">×</button></view>
+      <view class="sheet-head"><view><view class="card-title">播放列表 <text class="queue-count">{{queue.length}}</text></view><view class="hint">本机保存 · 点击音频播放，左右按钮切歌</view></view><button size="mini" class="icon-button" bindtap="closeQueue" aria-label="关闭播放列表">×</button></view>
       <scroll-view scroll-y class="queue-scroll">
         <view wx:for="{{queue}}" wx:key="url" class="queue-row {{index === currentIndex ? 'queue-current' : ''}}">
           <view class="queue-track" data-index="{{index}}" bindtap="selectTrack"><text class="queue-number">{{index === currentIndex ? '♫' : index + 1}}</text><view class="queue-track-copy"><view class="queue-title">{{item.title}}</view><view class="queue-url">{{item.url}}</view></view><text wx:if="{{index === currentIndex}}" class="queue-playing">当前</text></view>
-          <button class="icon-button remove-track" data-index="{{index}}" bindtap="removeTrack" disabled="{{busy || index === currentIndex}}" aria-label="移除音频">×</button>
+          <button size="mini" class="icon-button remove-track" data-index="{{index}}" bindtap="removeTrack" disabled="{{busy || index === currentIndex}}" aria-label="移除音频">×</button>
         </view>
       </scroll-view>
       <view class="queue-add"><view class="label">添加音频链接</view><textarea class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" maxlength="-1" disabled="{{busy}}" placeholder="粘贴 HTTP 或 HTTPS 音频链接"/><button class="primary" bindtap="addTrack" disabled="{{busy}}">加入播放列表</button></view>
