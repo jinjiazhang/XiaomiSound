@@ -75,7 +75,10 @@
       <view wx:if="{{!duration}}" class="progress-note">音箱尚未返回音频时长</view>
       <view class="transport">
         <button size="mini" class="icon-button skip" data-step="-1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="上一首"><view class="previous-shape"></view></button>
+        <view class="transport-main">
         <button size="mini" class="main-toggle" bindtap="togglePlayback" loading="{{busy}}" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="{{isPlaying ? '暂停' : '播放'}}"><view class="{{isPlaying ? 'pause-shape' : 'play-shape'}}"></view></button>
+          <button size="mini" class="icon-button transport-stop" bindtap="stop" disabled="{{busy || selectedDevice.presence !== 'online'}}" aria-label="停止播放"><view class="stop-shape"></view><text>停止</text></button>
+        </view>
         <button size="mini" class="icon-button skip" data-step="1" bindtap="changeTrack" disabled="{{busy || queue.length < 2 || selectedDevice.presence !== 'online'}}" aria-label="下一首"><view class="next-shape"></view></button>
       </view>
       </view>
@@ -83,7 +86,6 @@
         <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="openVolume"><view class="tool-icon"><view class="speaker-shape"><view class="speaker-wave"></view></view></view><text>音量 {{volumeKnown ? volume + '%' : ''}}</text></button>
         <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="changeLoop"><view class="tool-icon"><text class="tool-symbol">{{loopType === 2 ? '⤨' : '↻'}}</text></view><text>{{loopType === null ? '播放模式' : (loopType === 0 ? '单曲循环' : (loopType === 1 ? '顺序播放' : '随机播放'))}}</text></button>
         <button size="mini" class="tool-button" bindtap="openQueue"><view class="tool-icon"><view class="list-shape"></view></view><text>列表 {{queue.length}}</text></button>
-        <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="stop"><view class="tool-icon"><view class="stop-shape"></view></view><text>停止</text></button>
       </view>
       <view wx:if="{{message}}" class="player-message">{{message}}</view><view wx:if="{{error}}" class="notice error">{{error}}</view><button wx:if="{{error}}" class="text-button" bindtap="copyDiagnostics">复制诊断信息</button>
     </view></scroll-view>
