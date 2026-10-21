@@ -117,12 +117,15 @@ class XiaomiClient {
   }
   stop(device) { return this.ubus(device,'player_play_operation',{action:'stop',media:'app_ios'}) }
   async status(device) {
-    const data=await this.ubus(device,'player_get_play_status',{media:'app_ios'})
-    if (!data) throw new Error('设备未返回播放状态')
-    if (typeof data.info==='string') {
-      try { return JSON.parse(data.info) } catch (_) { throw new Error('设备播放状态格式异常') }
-    }
-    return data
+    // The APK queries the current player without selecting an app-specific media source.
+    const info=await this.readInfo(device,'player_get_play_status')
+    const numeric=value=>(typeof value==='number' || (typeof value==='string' && value.trim()!=='')) && Number.isFinite(Number(value))?Number(value):null
+    const song=info.play_song_detail || {}
+    this.playbackDiagnostics={status:numeric(info.status),mediaType:numeric(info.media_type),
+      volume:numeric(info.volume),hasSong:!!info.play_song_detail,
+      duration:numeric(song.duration===undefined?info.duration:song.duration),
+      position:numeric(song.position===undefined?info.position:song.position)}
+    return info
   }
   async execute(device,method,message,path='mediaplayer') {
     return check(await this.ubus(device,method,message,path),'设备执行')
@@ -158,7 +161,7 @@ class XiaomiClient {
         ![start,stop].every(v=>typeof v==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)) || start===stop) throw new Error('请检查夜间模式和起止时间')
     return this.execute(device,'set',{total,light,volume,start,stop},'nightmode')
   }
-  diagnostics() { return {version:'0.3.7',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  diagnostics() { return {version:'0.3.11',playback:this.playbackDiagnostics||null,requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null

@@ -56,7 +56,7 @@ test('library rejects invalid saved URLs and keeps a usable default',()=>{
 test('pausing and resuming never restart the audio URL',async()=>{
   const {p}=page();let pause=0,resume=0
   p.client.pause=async()=>{pause++};p.client.resume=async()=>{resume++}
-  p.client.status=async()=>({status:pause>resume?2:1,volume:20})
+  p.client.status=async()=>({status:pause>resume?2:1,volume:20,play_song_detail:{title:"测试音频"}})
   p.data.playbackState=1
   await p.togglePlayback();assert.equal(pause,1);assert.equal(p.data.playbackState,2)
   await p.togglePlayback();assert.equal(resume,1);assert.equal(p.data.playbackState,1)
@@ -114,7 +114,7 @@ test('resume switches back to the pause button after delayed confirmation',async
   const {p}=page();let reads=0
   p.data.playbackState=2;p.data.isPlaying=false
   p.client.resume=async()=>{}
-  p.client.status=async()=>({status:++reads===1?2:1})
+  p.client.status=async()=>({status:++reads===1?2:1,play_song_detail:{title:"测试音频"}})
   await p.togglePlayback()
   assert.equal(reads,2);assert.equal(p.data.playbackState,1);assert.equal(p.data.isPlaying,true)
 })
@@ -207,4 +207,70 @@ test('refreshing an offline device clears its previous playback state',async()=>
   await p.loadDevices()
   assert.equal(p.data.isPlaying,false);assert.equal(p.data.duration,0)
   assert.equal(p.data.volumeKnown,false);assert.equal(p.data.loopType,null)
+})
+test('failed status refresh invalidates playing state instead of retaining it',async()=>{
+  const {p}=page();p.data.playbackState=1;p.data.isPlaying=true;p.data.statusText='播放中'
+  p.client.status=async()=>{throw new Error('网络失败')}
+  await assert.rejects(p.loadStatus(p.data.selectedDevice),/网络失败/)
+  assert.equal(p.data.isPlaying,false);assert.equal(p.data.playbackState,null)
+  assert.match(p.data.statusText,/未同步/)
+})
+test('older status response cannot overwrite a newer stopped response on the same device',async()=>{
+  const {p}=page(),resolvers=[]
+  p.client.status=()=>new Promise(resolve=>resolvers.push(resolve))
+  const first=p.loadStatus(p.data.selectedDevice),second=p.loadStatus(p.data.selectedDevice)
+  resolvers[1]({status:0});await second
+  resolvers[0]({status:1});await first
+  assert.equal(p.data.playbackState,0);assert.equal(p.data.isPlaying,false)
+})
+test('invalid status values never imply playing or stopped',()=>{
+  for(const status of [null,undefined,true,false,'',{},4]) {
+    assert.equal(playback({status}).playbackState,null)
+    assert.equal(playback({status}).statusText,'状态未知')
+  }
+  assert.equal(playback({status:'1',play_song_detail:{title:'测试音频'}}).isPlaying,true)
+  assert.equal(playback({status:2}).isPlaying,false)
+})
+test('unknown state must be read before toggle and cannot restart audio on query failure',async()=>{
+  const {p}=page();p.data.playbackState=null
+  p.client.status=async()=>{throw new Error('网络失败')}
+  p.client.play=async()=>assert.fail('must not start a new track')
+  await p.togglePlayback();assert.match(p.data.error,/网络失败/)
+})
+test('status queries the active player with APK empty parameters and diagnostic metadata excludes content',async()=>{
+  const c=new XiaomiClient({getStorageSync:()=>null});let request
+  c.api=async(path,data)=>{request=data;return {code:0,data:{code:0,info:JSON.stringify({status:0,media_type:3,volume:20,play_song_detail:{title:'private title',url:'https://private.example',position:0,duration:1000}})}}}
+  const state=await c.status({deviceID:'speaker'})
+  assert.equal(state.status,0);assert.deepEqual(JSON.parse(request.message),{})
+  assert.equal(request.method,'player_get_play_status')
+  assert.deepEqual(c.diagnostics().playback,{status:0,mediaType:3,volume:20,hasSong:true,position:0,duration:1000})
+  assert.doesNotMatch(JSON.stringify(c.diagnostics()),/private/)
+})
+test('real login response with status 1 and no playback content is unconfirmed, not playing',()=>{
+  const result=playback({status:1,volume:60})
+  assert.equal(result.playbackState,null)
+  assert.equal(result.isPlaying,false)
+  assert.equal(result.unconfirmedPlaying,true)
+  assert.equal(result.statusText,'播放状态待确认')
+  assert.equal(result.volume,60)
+  assert.equal(playback({status:1,play_song_detail:{}}).isPlaying,false)
+  assert.equal(playback({status:1,play_song_detail:{title:'电台'}}).isPlaying,true)
+  assert.equal(playback({status:1,position:2000}).isPlaying,true)
+  assert.equal(playback({status:0,play_song_detail:{title:'旧曲目'}}).isPlaying,false)
+})
+test('explicit play from unconfirmed state starts the selected track, never sends pause',async()=>{
+  const {p}=page();p.data.playbackState=null;p.data.unconfirmedPlaying=true
+  p.client.status=async()=>({status:1,volume:60})
+  let played=0;p.client.play=async()=>{played++}
+  p.client.pause=async()=>assert.fail('no implicit pause for unconfirmed playback')
+  await p.togglePlayback()
+  assert.equal(played,1);assert.equal(p.data.isPlaying,false)
+  assert.equal(p.data.statusText,'播放状态待确认')
+})
+test('unconfirmed streams still allow an explicit pause command',async()=>{
+  const {p}=page();let calls=0
+  p.data.unconfirmedPlaying=true;p.data.playbackState=null
+  p.client.pause=async()=>{calls++};p.client.status=async()=>({status:2,volume:60})
+  await p.pausePlayback()
+  assert.equal(calls,1);assert.equal(p.data.playbackState,2);assert.equal(p.data.unconfirmedPlaying,false)
 })

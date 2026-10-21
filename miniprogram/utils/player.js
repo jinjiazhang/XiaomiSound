@@ -25,15 +25,23 @@ function time(seconds) {
   return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')
 }
 function playback(status) {
+  status=status && typeof status==='object'?status:{}
+  const raw=status.status
+  const code=(typeof raw==='number' || (typeof raw==='string' && /^[0-3]$/.test(raw)))?Number(raw):null
+  const reportedState=[0,1,2,3].includes(code)?code:null
   const song=status.play_song_detail || {}
   const duration=Number(song.duration===undefined?status.duration:song.duration)
   const position=Number(song.position===undefined?status.position:song.position)
   const seconds=Number.isFinite(duration)&&duration>0?duration/1000:0
   const elapsed=Number.isFinite(position)&&position>=0?position/1000:0
+  const hasContent=[song.title,song.audio_id,song.url].some(v=>typeof v==='string' && v.trim()!=='' && v!=='0') ||
+    (typeof song.audio_id==='number' && song.audio_id>0) || seconds>0 || elapsed>0
+  const unconfirmedPlaying=reportedState===1 && !hasContent
+  const playbackState=unconfirmedPlaying?null:reportedState
   const volume=Number(status.volume)
   return {
-    playbackState:Number(status.status),isPlaying:Number(status.status)===1,
-    statusText:({0:'未播放',1:'播放中',2:'已暂停',3:'未播放'})[status.status]||'状态未知',
+    playbackState,unconfirmedPlaying,isPlaying:playbackState===1,
+    statusText:unconfirmedPlaying?'播放状态待确认':({0:'未播放',1:'播放中',2:'已暂停',3:'未播放'})[playbackState]||'状态未知',
     duration:seconds,position:seconds?Math.min(elapsed,seconds):elapsed,
     positionText:time(seconds?Math.min(elapsed,seconds):elapsed),durationText:seconds?time(seconds):'--:--',
     progress:seconds?Math.min(100,Math.max(0,elapsed/seconds*100)):0,

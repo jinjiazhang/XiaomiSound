@@ -1,6 +1,6 @@
 <view class="page {{loggedIn ? 'with-player' : ''}}">
-  <view class="heading">{{!loggedIn ? '把音乐送到家里' : (tab === 'speaker' ? '我的音箱' : (tab === 'music' ? '我的音乐' : '我的'))}}</view>
-  <view class="subtitle">连接小爱音箱，让喜欢的声音在家响起</view>
+  <view wx:if="{{!loggedIn}}" class="heading">把音乐送到家里</view>
+  <view wx:if="{{!loggedIn}}" class="subtitle">连接小爱音箱，让喜欢的声音在家响起</view>
 
   <view wx:if="{{!loggedIn}}" class="card">
     <view class="card-title">{{otp ? '验证你的账号' : '登录小米账号'}}</view>
@@ -23,7 +23,7 @@
   <block wx:if="{{loggedIn}}">
     <view wx:if="{{tab === 'speaker'}}" class="card">
       <view class="card-head">
-        <view class="card-title">我的音箱</view>
+        <view class="card-title">已绑定 {{devices.length}} 台</view>
         <button size="mini" class="small-button" disabled="{{busy}}" bindtap="refreshDevices">刷新</button>
       </view>
       <picker wx:if="{{devices.length}}" mode="selector" range="{{devices}}" range-key="label" value="{{selectedIndex}}" bindchange="selectDevice" disabled="{{busy}}">
@@ -105,6 +105,8 @@
       <view class="album-art"><view class="album-halo"></view><view class="album-orbit orbit-one"></view><view class="album-orbit orbit-two"></view><view class="album-star star-one"></view><view class="album-star star-two"></view><view class="album-caption">SOUND AT HOME</view><view class="album-name">{{currentTitle}}</view><view class="album-small">让声音，填满整个宇宙</view></view>
       <view class="track-heading"><view class="track-heading-copy"><view class="now-title">{{currentTitle}}</view><view class="now-artist">{{currentArtist}}</view></view><button size="mini" class="icon-button favorite-button {{isFavorite ? 'favorite-active' : ''}}" bindtap="toggleFavorite" disabled="{{!canFavorite}}" aria-label="{{isFavorite ? '取消收藏链接' : '收藏链接'}}">{{isFavorite ? '♥' : '♡'}}</button></view>
       <view class="playback-badge"><view class="state-dot {{isPlaying ? 'state-playing' : ''}}"></view><text>{{statusText}}</text></view>
+      <view wx:if="{{unconfirmedPlaying}}" class="hint">音箱未返回播放内容，暂不能确认是否正在播放。点击播放会重新播放本机列表中选中的音频。</view>
+      <button wx:if="{{unconfirmedPlaying}}" class="text-button" bindtap="pausePlayback" disabled="{{busy || selectedDevice.presence !== 'online'}}">发送暂停指令</button>
       <view class="playback-controls">
       <slider class="seek-slider" min="0" max="100" step="0.1" value="{{progress}}" activeColor="#fa2360" backgroundColor="#eceef2" block-size="16" bindchanging="onSeekChanging" bindchange="seek" disabled="{{busy || !duration || selectedDevice.presence !== 'online'}}" aria-label="播放进度"/>
       <view class="time-row"><text>{{positionText}}</text><text>{{durationText}}</text></view>

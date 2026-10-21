@@ -178,7 +178,7 @@
 .page button.nav-item.active,.page button.filter.active { color:#346df1; background:#eef3ff; }
 .page .mini-player { bottom:calc(126rpx + env(safe-area-inset-bottom)); }
 .device-dashboard { text-align:center; }
-.speaker-illustration { width:150rpx; height:190rpx; margin:16rpx auto 28rpx; border-radius:42rpx; background:linear-gradient(145deg,#526787,#17263f); color:#a5c9ff; font-size:88rpx; line-height:190rpx; box-shadow:0 18rpx 40rpx #dce3ef; }
+.speaker-illustration { width:150rpx; height:150rpx; margin:16rpx auto 28rpx; border-radius:42rpx; background:linear-gradient(145deg,#526787,#17263f); color:#a5c9ff; font-size:88rpx; line-height:150rpx; box-shadow:0 18rpx 40rpx #dce3ef; }
 .device-title { font-size:36rpx; font-weight:600; }
 .feature-grid { display:flex; flex-wrap:wrap; margin-top:30rpx; }
 .page button.feature { display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; min-width:0; min-height:0; height:auto; width:33.33%; padding:24rpx 0; margin:0; border-radius:16rpx; background:transparent; font-size:24rpx; line-height:1.6; color:#34425d; }
