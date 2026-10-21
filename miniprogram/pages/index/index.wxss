@@ -7,7 +7,7 @@
 .label { font-size: 26rpx; color: #59667b; margin: 28rpx 0 12rpx; }
 .input { box-sizing: border-box; height: 96rpx; padding: 0 24rpx; background: #f5f7fb; border-radius: 16rpx; font-size: 30rpx; }
 .code { margin-top: 24rpx; }
-.primary { margin-top: 32rpx; background: #3269f5; color: #fff; height: 96rpx; line-height: 96rpx; font-weight: 600; }
+.primary { margin-top: 32rpx; background: #3269f5; color: #fff; height: 96rpx; line-height: 1.4; font-weight: 600; }
 .primary[disabled] { background: #c4d2f5; color: #fff; }
 .hint { color: #8290a4; font-size: 24rpx; line-height: 1.7; margin-top: 20rpx; }
 .small-button { margin: 0; padding: 0 20rpx; font-size: 24rpx; line-height: 64rpx; background: #f2f5fb; color: #3269f5; }
@@ -20,7 +20,7 @@
 .audio-label { text-align: left; }
 .audio-url { width: 100%; height: 160rpx; padding: 20rpx 24rpx; font-size: 26rpx; line-height: 1.5; text-align: left; overflow-wrap: anywhere; }
 .actions { display: flex; gap: 20rpx; margin-top: 20rpx; }
-.secondary { flex: 1; background: #f2f5fb; color: #52627a; margin: 0; line-height: 84rpx; }
+.secondary { flex: 1; background: #f2f5fb; color: #52627a; margin: 0; line-height: 1.4; }
 .status { font-size: 26rpx; color: #59667b; margin-top: 28rpx; }
 .text-button { color: #788398; background: transparent; font-size: 26rpx; margin-top: 20rpx; }
 .notice { margin-top: 24rpx; background: #eaf2ff; padding: 24rpx; border-radius: 16rpx; color: #315d99; font-size: 26rpx; line-height: 1.6; overflow-wrap: anywhere; }
@@ -91,7 +91,7 @@
 .queue-track { display: flex; align-items: center; gap: 20rpx; flex: 1; min-width: 0; }.queue-track-copy { flex: 1; min-width: 0; }
 .queue-number { width: 28rpx; color: #969ca8; font-size: 24rpx; }.queue-title { font-size: 27rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }.queue-url { color: #989fab; font-size: 20rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-top: 8rpx; }
 .queue-current .queue-title,.queue-current .queue-number,.queue-playing { color: #fa2360; }.queue-playing { font-size: 20rpx; }.remove-track { color: #a6aab2; font-size: 34rpx; }
-.queue-add .label { margin-top: 20rpx; }.queue-add .primary { margin-top: 20rpx; height: 80rpx; line-height: 80rpx; font-size: 27rpx; }.queue-add .audio-url { height: 124rpx; font-size: 23rpx; }
+.queue-add .label { margin-top: 20rpx; }.queue-add .primary { margin-top: 20rpx; height: 80rpx; line-height: 1.4; font-size: 27rpx; }.queue-add .audio-url { height: 124rpx; font-size: 23rpx; }
 /* Keep the transport controls within reach on shorter phone screens. */
 .now-title { margin-top: 24rpx; }
 .progress-track { margin-top: 28rpx; }
@@ -104,9 +104,17 @@
 
 /* WeChat adds default widths to button:not([size=mini]); selectors here also
    outrank the native size styles so fixed icon controls cannot stretch. */
-.page button.primary { width: 100%; box-sizing: border-box; padding-left: 0; padding-right: 0; margin-left: 0; margin-right: 0; }
+/* Explicit vertical padding is needed with WeChat style v2. A height-sized
+   line-height plus native padding pushes labels below the button centre. */
+.page button.primary,.page button.secondary,.page button.small-button,.page button.text-button,.page button.stop-button {
+  box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  min-height: 0; padding: 0 24rpx; line-height: 1.4;
+}
+.page button.primary { width: 100%; padding: 0 24rpx; margin-left: 0; margin-right: 0; }
+.page button.secondary { width: 100%; height: 84rpx; }
+.page button.text-button,.page button.stop-button { min-height: 72rpx; padding: 16rpx 24rpx; }
 .page .actions button.secondary { flex: 1 1 0%; width: 0; min-width: 0; box-sizing: border-box; height: 84rpx; padding: 0 8rpx; white-space: nowrap; }
-.page button.small-button { width: auto; flex: 0 0 auto; box-sizing: border-box; font-size: 24rpx; line-height: 64rpx; padding: 0 20rpx; }
+.page button.small-button { width: auto; flex: 0 0 auto; box-sizing: border-box; font-size: 24rpx; height: 64rpx; line-height: 1.4; padding: 0 20rpx; }
 .page button.icon-button { width: 64rpx; min-width: 64rpx; max-width: 64rpx; height: 64rpx; min-height: 0; flex: 0 0 64rpx; box-sizing: border-box; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 48rpx; line-height: 1; }
 .page button.skip { width: 74rpx; min-width: 74rpx; max-width: 74rpx; height: 74rpx; flex-basis: 74rpx; }
 .page .mini-player button.mini-toggle { width: 52rpx; min-width: 52rpx; max-width: 52rpx; height: 52rpx; flex-basis: 52rpx; }
@@ -153,7 +161,7 @@
 .volume-sheet .volume-row { gap: 18rpx; margin-top: 16rpx; }
 .volume-sheet .volume-label { width: 36rpx; text-align: center; }
 .volume-caption { font-size: 22rpx; color: #959aa6; text-align: center; margin-top: 18rpx; }
-.page button.volume-done { background: #f3f4f8; color: #4b5262; margin-top: 28rpx; height: 80rpx; line-height: 80rpx; font-weight: 500; }
+.page button.volume-done { background: #f3f4f8; color: #4b5262; margin-top: 28rpx; height: 80rpx; line-height: 1.4; font-weight: 500; }
 @media (max-height: 640px) { .track-heading { margin-top: 20rpx; } .playback-controls { margin-top: 24rpx; } .detail-tools { margin-top: 26rpx; padding-top: 18rpx; } }
 
 
@@ -161,3 +169,32 @@
 .toggle-label { font-size: 18rpx; line-height: 1; font-weight: 500; }
 .main-toggle .pause-shape { height: 32rpx; }
 .main-toggle .play-shape { border-top-width: 17rpx; border-bottom-width: 17rpx; border-left-width: 26rpx; }
+
+/* Device, library and account navigation */
+.page.with-player { padding-bottom: 300rpx; }
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:25; display:flex; background:#fff; border-top:1rpx solid #edf0f5; padding:12rpx 20rpx calc(12rpx + env(safe-area-inset-bottom)); }
+.page button.nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; width:0; min-width:0; min-height:0; height:92rpx; flex:1 1 0%; margin:0; padding:8rpx; background:transparent; color:#8a91a1; font-size:23rpx; line-height:1.5; border-radius:0; }
+.nav-item text { display:block; font-size:34rpx; }
+.page button.nav-item.active,.page button.filter.active { color:#346df1; background:#eef3ff; }
+.page .mini-player { bottom:calc(126rpx + env(safe-area-inset-bottom)); }
+.device-dashboard { text-align:center; }
+.speaker-illustration { width:150rpx; height:190rpx; margin:16rpx auto 28rpx; border-radius:42rpx; background:linear-gradient(145deg,#526787,#17263f); color:#a5c9ff; font-size:88rpx; line-height:190rpx; box-shadow:0 18rpx 40rpx #dce3ef; }
+.device-title { font-size:36rpx; font-weight:600; }
+.feature-grid { display:flex; flex-wrap:wrap; margin-top:30rpx; }
+.page button.feature { display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; min-width:0; min-height:0; height:auto; width:33.33%; padding:24rpx 0; margin:0; border-radius:16rpx; background:transparent; font-size:24rpx; line-height:1.6; color:#34425d; }
+.feature-icon { display:block; color:#5278c8; font-size:42rpx; margin-bottom:8rpx; }
+.page button[disabled] { opacity:.45; }
+.library-tabs { display:flex; gap:12rpx; margin:24rpx 0 12rpx; }
+.page button.filter { display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:0; min-width:0; min-height:0; height:64rpx; flex:1 1 0%; margin:0; padding:12rpx 4rpx; line-height:1.5; font-size:25rpx; background:#f5f7fb; color:#788399; border-radius:16rpx; }
+.search { margin-top:24rpx; }
+.empty-state { padding:36rpx 12rpx; text-align:center; color:#8a91a1; font-size:26rpx; line-height:1.8; }
+.settings-row { display:flex; justify-content:space-between; align-items:center; gap:24rpx; padding:25rpx 0; border-bottom:1rpx solid #edf0f5; font-size:28rpx; }
+.settings-row > text:last-child { color:#7c879a; text-align:right; overflow-wrap:anywhere; }
+.tools-mask { z-index:80; }
+.tool-sheet { background:#fff; width:100%; max-height:85vh; overflow-y:auto; border-radius:36rpx 36rpx 0 0; padding:32rpx 32rpx calc(36rpx + env(safe-area-inset-bottom)); box-sizing:border-box; }
+.speech-input { width:100%; height:220rpx; box-sizing:border-box; margin-top:24rpx; }
+.timer-status { padding:24rpx 0 12rpx; font-size:32rpx; font-weight:600; }
+.timer-options { display:flex; flex-wrap:wrap; gap:16rpx; margin-top:28rpx; }
+.page .timer-options button.secondary { flex:0 0 calc((100% - 32rpx) / 3); width:calc((100% - 32rpx) / 3); margin:0; font-size:26rpx; }
+.time-picker { color:#346df1; padding:12rpx 0 12rpx 20rpx; }
+.seek-slider { margin:14rpx 0; }

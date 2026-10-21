@@ -1,5 +1,5 @@
 <view class="page {{loggedIn ? 'with-player' : ''}}">
-  <view class="heading">把音乐送到家里</view>
+  <view class="heading">{{!loggedIn ? '把音乐送到家里' : (tab === 'speaker' ? '我的音箱' : (tab === 'music' ? '我的音乐' : '我的'))}}</view>
   <view class="subtitle">连接小爱音箱，让喜欢的声音在家响起</view>
 
   <view wx:if="{{!loggedIn}}" class="card">
@@ -21,7 +21,7 @@
   </view>
 
   <block wx:if="{{loggedIn}}">
-    <view class="card">
+    <view wx:if="{{tab === 'speaker'}}" class="card">
       <view class="card-head">
         <view class="card-title">我的音箱</view>
         <button size="mini" class="small-button" disabled="{{busy}}" bindtap="refreshDevices">刷新</button>
@@ -32,12 +32,26 @@
       <view wx:else class="hint">没有找到音箱，请确认账号和设备网络后刷新。</view>
       <view wx:if="{{selectedDevice}}" class="hint">型号 {{selectedDevice.hardware}}</view>
     </view>
-    <view class="card music-card">
+    <view wx:if="{{tab === 'speaker' && selectedDevice}}" class="card device-dashboard">
+      <view class="speaker-illustration">♪</view>
+      <view class="device-title">{{selectedDevice.name}}</view>
+      <view class="status">{{selectedDevice.presence === 'online' ? statusText : '设备离线'}} · {{selectedDevice.hardware}}</view>
+      <view wx:if="{{selectedDevice.presence !== 'online'}}" class="hint">请检查音箱电源和 Wi-Fi，再刷新设备列表。</view>
+      <view class="feature-grid">
+        <button class="feature" bindtap="openPlayer"><text class="feature-icon">♫</text>播放器</button>
+        <button class="feature" bindtap="openVolume" disabled="{{busy || selectedDevice.presence !== 'online'}}"><text class="feature-icon">◖</text>音量调节</button>
+        <button class="feature" data-tool="tts" bindtap="openTool" disabled="{{busy || selectedDevice.presence !== 'online'}}"><text class="feature-icon">☏</text>文字播报</button>
+        <button class="feature" data-tool="timer" bindtap="openTool" disabled="{{busy || selectedDevice.presence !== 'online'}}"><text class="feature-icon">◷</text>睡眠定时</button>
+        <button class="feature" data-tool="night" bindtap="openTool" disabled="{{busy || selectedDevice.presence !== 'online'}}"><text class="feature-icon">☾</text>夜间模式</button>
+        <button class="feature" data-tool="info" bindtap="openTool"><text class="feature-icon">ⓘ</text>设备信息</button>
+      </view>
+    </view>
+    <view wx:if="{{tab === 'music'}}" class="card music-card">
       <view class="music-icon">♫</view>
       <view class="track-title">{{audioTitle}}</view>
       <view class="track-caption">填写音频链接，发送到音箱播放</view>
-      <view class="label audio-label">音频地址</view>
-      <textarea wx:if="{{!playerOpen && !queueOpen}}" class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" placeholder="https://example.com/audio.mp3" maxlength="-1" disabled="{{busy}}" />
+      <input class="input" value="{{trackName}}" data-field="trackName" bindinput="onInput" placeholder="音频名称（可选）" maxlength="80" disabled="{{busy}}"/><view class="label audio-label">音频地址</view>
+      <textarea wx:if="{{!playerOpen && !queueOpen && !toolOpen}}" class="input audio-url" value="{{audioUrl}}" data-field="audioUrl" bindinput="onInput" placeholder="https://example.com/audio.mp3" maxlength="-1" disabled="{{busy}}" />
       <button class="primary" loading="{{busy}}" disabled="{{busy || !selectedDevice || selectedDevice.presence !== 'online'}}" bindtap="play">在音箱播放</button>
       <view class="actions">
         <button class="secondary" disabled="{{busy}}" bindtap="addTrack">加入列表</button>
@@ -49,7 +63,30 @@
       <view class="status">{{statusText}}<text wx:if="{{volumeText}}"> · 音量 {{volumeText}}</text></view>
       <view class="hint">点击底部播放器，可暂停或继续播放。</view>
     </view>
-    <button class="text-button" disabled="{{busy}}" bindtap="logout">退出登录</button>
+    <view wx:if="{{tab === 'music'}}" class="card library-card">
+      <view class="card-title">本机音乐库</view>
+      <view class="hint">保存音频链接，在所选音箱播放；列表不会自动连续播放。</view>
+      <input class="input search" value="{{search}}" data-field="search" bindinput="onInput" placeholder="搜索音频名称"/>
+      <view class="library-tabs">
+        <button class="filter {{libraryFilter === 'all' ? 'active' : ''}}" data-filter="all" bindtap="filterLibrary">全部</button>
+        <button class="filter {{libraryFilter === 'favorites' ? 'active' : ''}}" data-filter="favorites" bindtap="filterLibrary">收藏</button>
+        <button class="filter {{libraryFilter === 'recent' ? 'active' : ''}}" data-filter="recent" bindtap="filterLibrary">最近播放</button>
+      </view>
+      <view wx:for="{{visibleTracks}}" wx:key="url" class="queue-row">
+        <view class="queue-track" data-index="{{item.index}}" bindtap="selectTrack"><text class="queue-number">♫</text><view class="queue-track-copy"><view class="queue-title">{{item.title}}</view><view class="queue-url">{{item.url}}</view></view></view>
+        <button class="icon-button {{item.favorite ? 'favorite-active' : ''}}" size="mini" data-index="{{item.index}}" bindtap="favoriteTrack" aria-label="{{item.favorite ? '取消收藏' : '收藏'}}">{{item.favorite ? '♥' : '♡'}}</button>
+      </view>
+      <view wx:if="{{!visibleTracks.length}}" class="empty-state">{{search ? '没有匹配的音频' : (libraryFilter === 'favorites' ? '点击音频旁的爱心，收藏喜欢的声音' : '播放音频后，会在这里留下记录')}}</view>
+    </view>
+    <view wx:if="{{tab === 'account'}}" class="card">
+      <view class="card-title">小米账号已连接</view>
+      <view class="hint">已发现 {{devices.length}} 台音箱。使用绑定设备的小米账号控制音箱。</view>
+      <view class="settings-row"><text>当前音箱</text><text>{{selectedDevice ? selectedDevice.name : '未选择'}}</text></view>
+      <view class="settings-row"><text>本机音频 / 收藏</text><text>{{queue.length}} / {{favorites.length}}</text></view>
+      <view class="hint">音乐链接、收藏和最近播放仅保存在本机。退出登录会清除登录凭证，保留本机音乐库。</view>
+      <button class="secondary" bindtap="copyDiagnostics">复制诊断信息</button>
+      <button class="text-button" disabled="{{busy}}" bindtap="logout">退出登录</button>
+    </view>
   </block>
   <view wx:if="{{message}}" class="notice" role="status">{{message}}</view>
   <view wx:if="{{error}}" class="notice error" role="alert">{{error}}</view>
@@ -69,7 +106,7 @@
       <view class="track-heading"><view class="track-heading-copy"><view class="now-title">{{currentTitle}}</view><view class="now-artist">{{currentArtist}}</view></view><button size="mini" class="icon-button favorite-button {{isFavorite ? 'favorite-active' : ''}}" bindtap="toggleFavorite" disabled="{{!canFavorite}}" aria-label="{{isFavorite ? '取消收藏链接' : '收藏链接'}}">{{isFavorite ? '♥' : '♡'}}</button></view>
       <view class="playback-badge"><view class="state-dot {{isPlaying ? 'state-playing' : ''}}"></view><text>{{statusText}}</text></view>
       <view class="playback-controls">
-      <view class="progress-track"><view class="progress-fill" style="width: {{progress}}%;"><view class="progress-thumb"></view></view></view>
+      <slider class="seek-slider" min="0" max="100" step="0.1" value="{{progress}}" activeColor="#fa2360" backgroundColor="#eceef2" block-size="16" bindchanging="onSeekChanging" bindchange="seek" disabled="{{busy || !duration || selectedDevice.presence !== 'online'}}" aria-label="播放进度"/>
       <view class="time-row"><text>{{positionText}}</text><text>{{durationText}}</text></view>
       <view wx:if="{{!duration}}" class="progress-note">音箱尚未返回音频时长</view>
       <view class="transport">
@@ -80,9 +117,10 @@
       </view>
       <view class="player-tools detail-tools">
         <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="openVolume"><view class="tool-icon"><view class="speaker-shape"><view class="speaker-wave"></view></view></view><text>音量 {{volumeKnown ? volume + '%' : ''}}</text></button>
-        <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="changeLoop"><view class="tool-icon"><text class="tool-symbol">{{loopType === 2 ? '⤨' : '↻'}}</text></view><text>{{loopType === null ? '播放模式' : (loopType === 0 ? '单曲循环' : (loopType === 1 ? '顺序播放' : '随机播放'))}}</text></button>
+        <button size="mini" class="tool-button" disabled="{{busy || selectedDevice.presence !== 'online'}}" bindtap="changeLoop"><view class="tool-icon"><text class="tool-symbol">{{loopType === 3 ? '⤨' : '↻'}}</text></view><text>{{loopType === null ? '播放模式' : (loopType === 0 ? '单曲循环' : (loopType === 1 ? '列表循环' : (loopType === 2 ? '顺序播放' : '随机播放')))}}</text></button>
         <button size="mini" class="tool-button" bindtap="openQueue"><view class="tool-icon"><view class="list-shape"></view></view><text>列表 {{queue.length}}</text></button>
       </view>
+      <button class="text-button" data-tool="timer" bindtap="openTool" disabled="{{busy || selectedDevice.presence !== 'online'}}">◷ 睡眠定时</button>
       <view wx:if="{{message}}" class="player-message">{{message}}</view><view wx:if="{{error}}" class="notice error">{{error}}</view><button wx:if="{{error}}" class="text-button" bindtap="copyDiagnostics">复制诊断信息</button>
     </view></scroll-view>
   </view>
@@ -109,6 +147,47 @@
       <view class="volume-caption">{{volumeKnown ? '拖动滑杆，松开后调节音箱音量' : '正在读取音箱音量，请稍候'}}</view>
       <view wx:if="{{error}}" class="notice error">{{error}}</view>
       <button class="primary volume-done" bindtap="closeVolume">完成</button>
+    </view>
+  </view>
+  <view wx:if="{{loggedIn}}" class="bottom-nav">
+    <button class="nav-item {{tab === 'speaker' ? 'active' : ''}}" data-tab="speaker" bindtap="switchTab"><text>◉</text>音箱</button>
+    <button class="nav-item {{tab === 'music' ? 'active' : ''}}" data-tab="music" bindtap="switchTab"><text>♫</text>音乐</button>
+    <button class="nav-item {{tab === 'account' ? 'active' : ''}}" data-tab="account" bindtap="switchTab"><text>☺</text>我的</button>
+  </view>
+  <view wx:if="{{loggedIn && toolOpen && selectedDevice}}" class="sheet-mask tools-mask" bindtap="closeTool">
+    <view class="tool-sheet" catchtap="noop">
+      <view class="sheet-head"><view><view class="card-title">{{toolOpen === 'tts' ? '文字播报' : (toolOpen === 'timer' ? '睡眠定时' : (toolOpen === 'night' ? '夜间模式' : '设备信息'))}}</view><view class="hint">{{selectedDevice.name}}</view></view><button class="icon-button" size="mini" disabled="{{busy}}" bindtap="closeTool" aria-label="关闭">×</button></view>
+      <block wx:if="{{toolOpen === 'tts'}}">
+        <textarea class="input speech-input" value="{{ttsText}}" data-field="ttsText" bindinput="onInput" maxlength="500" placeholder="输入想让音箱说的话" disabled="{{busy}}"/>
+        <view class="hint">{{ttsText.length}} / 500 字 · 播报可能中断当前音乐</view>
+        <button class="primary" disabled="{{busy || !ttsText}}" loading="{{busy}}" bindtap="speak">在音箱播报</button>
+      </block>
+      <block wx:if="{{toolOpen === 'timer'}}">
+        <view class="timer-status">{{timerText}}</view>
+        <view class="hint">定时由音箱执行，关闭小程序后仍可生效。</view>
+        <view class="timer-options"><button wx:for="{{[15,30,60,90,120]}}" wx:key="*this" class="secondary" data-minutes="{{item}}" bindtap="chooseTimer" disabled="{{busy}}">{{item}} 分钟</button></view>
+        <button class="text-button" data-minutes="0" bindtap="chooseTimer" disabled="{{busy}}">取消定时</button>
+      </block>
+      <block wx:if="{{toolOpen === 'night'}}">
+        <view class="hint">按时段降低音量、减弱灯光。不同机型支持情况以音箱返回为准。</view>
+        <block wx:if="{{nightReady}}">
+          <view class="settings-row"><text>定时夜间模式</text><switch checked="{{night.total === 'night'}}" data-field="total" bindchange="editNight" disabled="{{busy}}"/></view>
+          <view class="settings-row"><text>减弱灯光</text><switch checked="{{night.light === 'night'}}" data-field="light" bindchange="editNight" disabled="{{busy}}"/></view>
+          <view class="settings-row"><text>降低音量</text><switch checked="{{night.volume === 'night'}}" data-field="volume" bindchange="editNight" disabled="{{busy}}"/></view>
+          <view class="settings-row"><text>开始时间</text><picker mode="time" value="{{night.start}}" data-field="start" bindchange="editNight" disabled="{{busy}}"><text class="time-picker">{{night.start}} ›</text></picker></view>
+          <view class="settings-row"><text>结束时间</text><picker mode="time" value="{{night.stop}}" data-field="stop" bindchange="editNight" disabled="{{busy}}"><text class="time-picker">{{night.stop}} ›</text></picker></view>
+          <button class="primary" bindtap="saveNight" disabled="{{busy}}" loading="{{busy}}">保存设置</button>
+        </block>
+        <view wx:elif="{{busy}}" class="empty-state">正在读取音箱设置…</view>
+      </block>
+      <block wx:if="{{toolOpen === 'info'}}">
+        <view class="settings-row"><text>名称</text><text>{{selectedDevice.name}}</text></view>
+        <view class="settings-row"><text>型号</text><text>{{selectedDevice.hardware}}</text></view>
+        <view class="settings-row"><text>固件版本</text><text>{{selectedDevice.romVersion}}</text></view>
+        <view class="settings-row"><text>连接状态</text><text>{{selectedDevice.presence === 'online' ? '在线' : '离线'}}</text></view>
+        <view class="hint">新设备配网、绑定和固件更新请在小爱音箱官方 App 中完成。</view>
+      </block>
+      <view wx:if="{{message}}" class="player-message">{{message}}</view><view wx:if="{{error}}" class="notice error">{{error}}</view>
     </view>
   </view>
 </view>

@@ -16,7 +16,8 @@ function library(value) {
   }
   if (!tracks.length) tracks.push(track(config.audioUrl,config.audioTitle))
   const favorites=value && Array.isArray(value.favorites)?value.favorites.filter(u=>tracks.some(t=>t.url===u)):[]
-  return {tracks,favorites}
+  const history=value && Array.isArray(value.history)?[...new Set(value.history)].filter(u=>tracks.some(t=>t.url===u)).slice(0,50):[]
+  return {tracks,favorites,history}
 }
 function time(seconds) {
   if (!Number.isFinite(seconds) || seconds<0) return '00:00'

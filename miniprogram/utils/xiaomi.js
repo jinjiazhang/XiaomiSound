@@ -88,8 +88,8 @@ class XiaomiClient {
     return result
   }
   async devices() { const result=await this.api('/admin/v2/device_list?master=0'); return Array.isArray(result.data)?result.data:[] }
-  async ubus(device,method,message) {
-    const result=await this.api('/remote/ubus',{deviceId:device.deviceID,method,path:'mediaplayer',message:JSON.stringify(message)})
+  async ubus(device,method,message,path='mediaplayer') {
+    const result=await this.api('/remote/ubus',{deviceId:device.deviceID,method,path,message:JSON.stringify(message)})
     if (result.data && typeof result.data==='object' && result.data.code!==undefined && result.data.code!==0) check(result.data,'设备执行')
     return result.data
   }
@@ -111,7 +111,7 @@ class XiaomiClient {
     return this.ubus(device,'player_set_volume',{volume,media:'app_ios'})
   }
   setLoop(device,type) {
-    if (![0,1,2].includes(type)) throw new Error('播放模式无效')
+    if (![0,1,2,3].includes(type)) throw new Error('播放模式无效')
     if (MUSIC_API.includes(device.hardware)) throw new Error('当前机型暂不支持远程切换循环模式')
     return this.ubus(device,'player_set_loop',{media:'common',type})
   }
@@ -124,7 +124,41 @@ class XiaomiClient {
     }
     return data
   }
-  diagnostics() { return {version:'0.3.5',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  async execute(device,method,message,path='mediaplayer') {
+    return check(await this.ubus(device,method,message,path),'设备执行')
+  }
+  seek(device,position) {
+    if (!Number.isSafeInteger(position) || position<0) throw new Error('播放位置无效')
+    return this.execute(device,'player_set_positon',{position,media:'app_android'})
+  }
+  speak(device,text) {
+    text=typeof text==='string'?text.trim():''
+    if (!text || text.length>500) throw new Error('请输入 1 到 500 字的播报内容')
+    return this.execute(device,'text_to_speech',{text},'mibrain')
+  }
+  setTimer(device,minutes) {
+    if (!Number.isInteger(minutes) || minutes<0 || minutes>1440) throw new Error('定时应为 0 到 1440 分钟')
+    return this.execute(device,'player_set_shutdown_timer',minutes===0?{action:'cancel_ending'}:
+      {action:'pause_later',hour:Math.floor(minutes/60),minute:minutes%60,second:0})
+  }
+  async readInfo(device,method,path='mediaplayer') {
+    const data=await this.ubus(device,method,{},path)
+    let info=data && (data.info===undefined?data:data.info)
+    if (typeof info==='string') {
+      try { info=JSON.parse(info) } catch (_) { throw new Error('设备返回的数据格式异常') }
+    }
+    if (!info || typeof info!=='object' || Array.isArray(info)) throw new Error('设备未返回有效数据')
+    return info
+  }
+  timer(device) { return this.readInfo(device,'get_shutdown_timer') }
+  nightMode(device) { return this.readInfo(device,'status','nightmode') }
+  setNightMode(device,settings) {
+    const {total,light,volume,start,stop}=settings
+    if (![total,light,volume].every(v=>['night','normal'].includes(v)) ||
+        ![start,stop].every(v=>typeof v==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)) || start===stop) throw new Error('请检查夜间模式和起止时间')
+    return this.execute(device,'set',{total,light,volume,start,stop},'nightmode')
+  }
+  diagnostics() { return {version:'0.3.7',requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null

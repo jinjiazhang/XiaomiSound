@@ -118,3 +118,93 @@ test('resume switches back to the pause button after delayed confirmation',async
   await p.togglePlayback()
   assert.equal(reads,2);assert.equal(p.data.playbackState,1);assert.equal(p.data.isPlaying,true)
 })
+test('APK controls preserve path, misspelled seek method, milliseconds and timer fields',async()=>{
+  const requests=[]
+  const c=new XiaomiClient({getStorageSync:()=>null})
+  c.api=async(path,data)=>{requests.push({...data,message:JSON.parse(data.message)});return {code:0,data:{code:0}}}
+  const d={deviceID:'speaker',hardware:'L16B'}
+  await c.seek(d,12500);await c.speak(d,'  开饭了  ');await c.setTimer(d,90);await c.setTimer(d,0);await c.setLoop(d,3)
+  assert.deepEqual(requests.map(r=>[r.path,r.method,r.message]),[
+    ['mediaplayer','player_set_positon',{position:12500,media:'app_android'}],
+    ['mibrain','text_to_speech',{text:'开饭了'}],
+    ['mediaplayer','player_set_shutdown_timer',{action:'pause_later',hour:1,minute:30,second:0}],
+    ['mediaplayer','player_set_shutdown_timer',{action:'cancel_ending'}],
+    ['mediaplayer','player_set_loop',{media:'common',type:3}]
+  ])
+  for (const value of [-1,NaN,1.5]) assert.throws(()=>c.seek(d,value))
+  for (const value of [-1,1441,0.5]) assert.throws(()=>c.setTimer(d,value))
+  assert.throws(()=>c.speak(d,'  '));assert.throws(()=>c.speak(d,'字'.repeat(501)))
+  assert.throws(()=>c.setLoop(d,4))
+})
+test('night mode writes only validated fields and decodes info envelopes',async()=>{
+  const c=new XiaomiClient({getStorageSync:()=>null}),d={deviceID:'speaker'}
+  const settings={total:'night',light:'normal',volume:'night',start:'22:30',stop:'07:00'}
+  let sent
+  c.api=async(path,data)=>{sent=data;return {code:0,data:{code:0,info:JSON.stringify(settings)}}}
+  assert.deepEqual(await c.nightMode(d),settings)
+  await c.setNightMode(d,{...settings,extra:'discard'})
+  assert.equal(sent.path,'nightmode');assert.equal(sent.method,'set');assert.deepEqual(JSON.parse(sent.message),settings)
+  assert.throws(()=>c.setNightMode(d,{...settings,start:'24:00'}))
+  assert.throws(()=>c.setNightMode(d,{...settings,stop:settings.start}))
+  c.api=async()=>({code:0,data:{code:9}})
+  await assert.rejects(c.nightMode(d),/设备执行失败/)
+  c.api=async()=>({code:0,data:{code:0,info:'invalid'}})
+  await assert.rejects(c.nightMode(d),/格式异常/)
+})
+test('seek converts percentage to milliseconds and polling does not move a dragged thumb',async()=>{
+  const {p}=page();let position
+  p.client.status=async()=>({status:1,play_song_detail:{duration:200000,position:1000}})
+  p.client.seek=async(d,value)=>{position=value}
+  p.data.duration=200
+  p.onSeekChanging({detail:{value:25}})
+  await p.loadStatus(p.data.selectedDevice)
+  assert.equal(p.data.progress,25);assert.equal(p.data.positionText,'00:50')
+  await p.seek({detail:{value:25}})
+  assert.equal(position,50000);assert.equal(p.data.seekDragging,false);assert.equal(p.data.progress,0.5)
+})
+test('filtered library retains original queue indexes and history ordering',()=>{
+  const {p}=page()
+  p.data.favorites=[p.data.queue[1].url]
+  p.data.libraryFilter='favorites';p.updateLibraryView()
+  assert.equal(p.data.visibleTracks.length,1);assert.equal(p.data.visibleTracks[0].index,1)
+  p.data.history=[p.data.queue[1].url,p.data.queue[0].url];p.data.libraryFilter='recent';p.updateLibraryView()
+  assert.equal(p.data.visibleTracks[0].index,1)
+  p.data.search='one';p.updateLibraryView();assert.equal(p.data.visibleTracks[0].index,0)
+  const saved=library({tracks:p.data.queue,history:[p.data.queue[1].url,'missing',p.data.queue[1].url]})
+  assert.deepEqual(saved.history,[p.data.queue[1].url])
+})
+test('settings responses cannot populate a different device or enable incomplete night settings',async()=>{
+  const {p}=page();let finish
+  p.data.toolOpen='night'
+  p.client.nightMode=()=>new Promise(resolve=>{finish=resolve})
+  const pending=p.readTool('night',p.data.selectedDevice)
+  p.data.selectedDevice={deviceID:'other'}
+  finish({total:'night',light:'night',volume:'night',start:'22:00',stop:'07:00'})
+  await pending;assert.equal(p.data.nightReady,false)
+  p.client.nightMode=async()=>({total:'night'})
+  await assert.rejects(p.readTool('night',p.data.selectedDevice),/完整夜间设置/)
+  assert.equal(p.data.nightReady,false)
+})
+test('timer readback uses seconds; failed writes never display success',async()=>{
+  const {p}=page()
+  p.data.toolOpen='timer';p.client.timer=async()=>({type:1,remain_time:90})
+  await p.readTool('timer',p.data.selectedDevice)
+  assert.match(p.data.timerText,/01:30/)
+  p.client.setTimer=async()=>{throw new Error('机型不支持')}
+  await p.chooseTimer({currentTarget:{dataset:{minutes:30}}})
+  assert.equal(p.data.message,'');assert.equal(p.data.error,'机型不支持')
+  assert.equal(p.data.busy,false)
+})
+test('new control commands require an explicit device acknowledgement',async()=>{
+  const c=new XiaomiClient({getStorageSync:()=>null})
+  c.api=async()=>({code:0})
+  await assert.rejects(c.speak({deviceID:'speaker'},'你好'),/设备执行失败/)
+})
+test('refreshing an offline device clears its previous playback state',async()=>{
+  const {p}=page()
+  p.data.isPlaying=true;p.data.duration=200;p.data.loopType=3;p.data.volumeKnown=true
+  p.client.devices=async()=>[{deviceID:'speaker',name:'客厅',presence:'offline',hardware:'L16B'}]
+  await p.loadDevices()
+  assert.equal(p.data.isPlaying,false);assert.equal(p.data.duration,0)
+  assert.equal(p.data.volumeKnown,false);assert.equal(p.data.loopType,null)
+})

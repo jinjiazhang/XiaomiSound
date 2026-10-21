@@ -1,8 +1,10 @@
 const {XiaomiClient}=require('../../utils/xiaomi')
 const config=require('../../config')
-const {LIBRARY_KEY,track,library,playback}=require('../../utils/player')
+const {LIBRARY_KEY,track,library,playback,time}=require('../../utils/player')
 Page({
   data:{
+    tab:'speaker',libraryFilter:'all',search:'',visibleTracks:[],history:[],trackName:'',
+    toolOpen:'',ttsText:'',timerText:'尚未读取',nightReady:false,night:{total:'normal',light:'night',volume:'night',start:'22:00',stop:'07:00'},seekDragging:false,
     account:'',password:'',code:'',otp:false,otpMethod:'手机',loggedIn:false,
     busy:false,devices:[],selectedIndex:0,selectedDevice:null,
     audioTitle:config.audioTitle,audioUrl:config.audioUrl,
@@ -14,8 +16,9 @@ Page({
   onLoad() {
     this.client=new XiaomiClient(wx)
     const saved=library(wx.getStorageSync(LIBRARY_KEY))
-    this.setData({loggedIn:!!this.client.session,queue:saved.tracks,favorites:saved.favorites,
+    this.setData({loggedIn:!!this.client.session,queue:saved.tracks,favorites:saved.favorites,history:saved.history,
       currentTitle:saved.tracks[0].title,isFavorite:saved.favorites.includes(saved.tracks[0].url)})
+    this.updateLibraryView()
     if (this.client.session) this.refreshDevices()
   },
   onShow() {
@@ -23,7 +26,7 @@ Page({
     this.startPolling()
     if (this.client && this.client.session && this.data.selectedDevice && this.data.selectedDevice.presence==='online') this.refreshStatus()
   },
-  onHide() { this.visible=false; this.stopPolling(); this.setData({volumeDragging:false,volumeOpen:false}) },
+  onHide() { this.visible=false; this.stopPolling(); this.setData({volumeDragging:false,volumeOpen:false,seekDragging:false}) },
   onUnload() { this.visible=false; this.stopPolling(); this.disposed=true },
   startPolling() {
     this.stopPolling()
@@ -32,7 +35,7 @@ Page({
           this.data.selectedDevice && this.data.selectedDevice.presence==='online') {
         this.polling=true
         this.loadStatus(this.data.selectedDevice).catch(error=>{
-          if (!this.disposed) this.setData({error:error.message,loggedIn:!!this.client.session,...(!this.client.session?{playerOpen:false,queueOpen:false,volumeOpen:false,selectedDevice:null}:{} )})
+          if (!this.disposed) this.setData({error:error.message,loggedIn:!!this.client.session,...(!this.client.session?{playerOpen:false,queueOpen:false,volumeOpen:false,toolOpen:'',selectedDevice:null}:{} )})
         }).finally(()=>{this.polling=false})
       }
     },4000)
@@ -40,9 +43,10 @@ Page({
   stopPolling() { if (this.pollTimer) clearInterval(this.pollTimer); this.pollTimer=null },
   onInput(event) {
     const field=event.currentTarget.dataset.field
-    if (['account','password','code','audioUrl'].includes(field)) {
+    if (['account','password','code','audioUrl','trackName','ttsText','search'].includes(field)) {
       const value=event.detail.value
       this.setData({[field]:value})
+      if (field==='search') this.updateLibraryView()
       if (field==='audioUrl') this.setData({audioTitle:value.trim()===config.audioUrl?config.audioTitle:'自定义音频'})
     }
   },
@@ -56,7 +60,7 @@ Page({
     } finally {
       if (this.disposed) return
       this.setData({busy:false,loggedIn:!!this.client.session})
-      if (!this.client.session) this.setData({devices:[],selectedDevice:null,playerOpen:false,queueOpen:false,volumeOpen:false,statusText:'尚未查询',volumeText:'',isPlaying:false,volumeKnown:false})
+      if (!this.client.session) this.setData({devices:[],selectedDevice:null,toolOpen:'',playerOpen:false,queueOpen:false,volumeOpen:false,statusText:'尚未查询',volumeText:'',isPlaying:false,volumeKnown:false})
     }
   },
   login() {
@@ -87,12 +91,14 @@ Page({
     const previous=this.data.selectedDevice && this.data.selectedDevice.deviceID
     const devices=(await this.client.devices()).map(device=>({
       deviceID:device.deviceID,name:device.alias||device.name||'小爱音箱',
-      hardware:device.hardware,presence:device.presence,
+      hardware:device.hardware,romVersion:device.romVersion||'未知',presence:device.presence,
       label:(device.alias||device.name||'小爱音箱')+' · '+(device.presence==='online'?'在线':'离线')
     }))
     let selectedIndex=devices.findIndex(d=>d.deviceID===previous)
     if (selectedIndex<0) selectedIndex=Math.max(0,devices.findIndex(d=>d.presence==='online'))
+    this.commandGeneration=(this.commandGeneration||0)+1
     this.setData({devices,selectedIndex,selectedDevice:devices[selectedIndex]||null,statusText:'尚未查询',volumeText:'',
+      playbackState:0,isPlaying:false,volumeKnown:false,progress:0,duration:0,positionText:'00:00',durationText:'--:--',loopType:null,canFavorite:false,
       message:devices.length?'':'账号下未找到小爱音箱'})
     if (devices[selectedIndex] && devices[selectedIndex].presence==='online') await this.loadStatus(devices[selectedIndex])
   },
@@ -101,7 +107,7 @@ Page({
     const index=Number(event.detail.value)
     this.commandGeneration=(this.commandGeneration||0)+1
     this.setData({selectedIndex:index,selectedDevice:this.data.devices[index],statusText:'尚未查询',volumeText:'',message:'',error:'',
-      playbackState:0,isPlaying:false,volume:0,volumeKnown:false,volumeDragging:false,positionText:'00:00',durationText:'--:--',duration:0,progress:0,loopType:null,canFavorite:false,volumeOpen:false})
+      toolOpen:'',nightReady:false,timerText:'尚未读取',seekDragging:false,playbackState:0,isPlaying:false,volume:0,volumeKnown:false,volumeDragging:false,positionText:'00:00',durationText:'--:--',duration:0,progress:0,loopType:null,canFavorite:false,volumeOpen:false})
     if (this.data.selectedDevice && this.data.selectedDevice.presence==='online') this.refreshStatus()
   },
   requireDevice() {
@@ -123,7 +129,8 @@ Page({
       currentArtist:state.remoteArtist || '自定义音频 · '+device.name,
       volumeText:state.volumeKnown?state.volume+'%':''}
     if (this.data.volumeDragging) { delete patch.volume; delete patch.volumeKnown }
-    if ([0,1,2].includes(status.loop_type)) patch.loopType=status.loop_type
+    if (this.data.seekDragging) { delete patch.progress; delete patch.positionText }
+    patch.loopType=[0,1,2,3].includes(status.loop_type)?status.loop_type:null
     this.setData(patch)
   },
   async syncPlayback(device,expected) {
@@ -135,10 +142,10 @@ Page({
       if (attempt<2) await new Promise(resolve=>setTimeout(resolve,300))
     }
   },
-  saveLibrary() { wx.setStorageSync(LIBRARY_KEY,{tracks:this.data.queue,favorites:this.data.favorites}) },
+  saveLibrary() { wx.setStorageSync(LIBRARY_KEY,{tracks:this.data.queue,favorites:this.data.favorites,history:this.data.history}); this.updateLibraryView() },
   addTrack() {
     try {
-      const item=track(this.data.audioUrl)
+      const item=track(this.data.audioUrl,this.data.trackName)
       if (this.data.queue.some(t=>t.url===item.url)) return this.setData({message:'这首音频已在播放列表中',error:''})
       if (this.data.queue.length>=100) throw new Error('播放列表最多保存 100 首音频')
       this.setData({queue:[...this.data.queue,item],message:'已加入播放列表',error:''})
@@ -150,6 +157,8 @@ Page({
     if (!item) throw new Error('请先添加音频')
     this.commandGeneration=(this.commandGeneration||0)+1
     await this.client.play(device,item.url)
+    this.setData({history:[item.url,...this.data.history.filter(u=>u!==item.url)].slice(0,50)})
+    this.saveLibrary()
     this.currentDeviceID=device.deviceID
     this.setData({currentIndex:index,currentTitle:item.title,currentArtist:'自定义音频 · '+device.name,
       isFavorite:this.data.favorites.includes(item.url),canFavorite:true,progress:0,positionText:'00:00',durationText:'--:--',duration:0,
@@ -159,7 +168,7 @@ Page({
   play() {
     return this.run(async()=>{
       this.requireDevice()
-      const item=track(this.data.audioUrl)
+      const item=track(this.data.audioUrl,this.data.trackName)
       let index=this.data.queue.findIndex(t=>t.url===item.url)
       if (index<0) {
         if (this.data.queue.length>=100) throw new Error('播放列表已满，请先移除音频')
@@ -200,7 +209,8 @@ Page({
     const queue=this.data.queue.filter((_,i)=>i!==index)
     const currentIndex=index<this.data.currentIndex?this.data.currentIndex-1:this.data.currentIndex
     const favorites=this.data.favorites.filter(u=>queue.some(t=>t.url===u))
-    this.setData({queue,currentIndex,favorites});this.saveLibrary()
+    const history=this.data.history.filter(u=>queue.some(t=>t.url===u))
+    this.setData({queue,currentIndex,favorites,history});this.saveLibrary()
   },
   openPlayer() { this.setData({playerOpen:true}) },
   closePlayer() { this.setData({playerOpen:false,volumeOpen:false,volumeDragging:false}) },
@@ -222,7 +232,7 @@ Page({
   changeLoop() {
     return this.run(async()=>{
       const device=this.requireDevice()
-      const type=this.data.loopType===null?0:(this.data.loopType+1)%3
+      const type=this.data.loopType===null?0:(this.data.loopType+1)%4
       this.commandGeneration=(this.commandGeneration||0)+1
       await this.client.setLoop(device,type)
       this.setData({message:'播放模式指令已发送'})
@@ -240,6 +250,81 @@ Page({
       finally { await this.loadStatus(device) }
     })
   },
+  switchTab(event) {
+    const tab=event.currentTarget.dataset.tab
+    if (['speaker','music','account'].includes(tab)) this.setData({tab})
+  },
+  updateLibraryView() {
+    const {queue,favorites,history,libraryFilter,search}=this.data
+    let rows=queue.map((item,index)=>({...item,index,favorite:favorites.includes(item.url)}))
+    if (libraryFilter==='favorites') rows=rows.filter(item=>item.favorite)
+    if (libraryFilter==='recent') rows=history.map(url=>rows.find(item=>item.url===url)).filter(Boolean)
+    const query=search.trim().toLowerCase()
+    this.setData({visibleTracks:rows.filter(item=>item.title.toLowerCase().includes(query))})
+  },
+  filterLibrary(event) { this.setData({libraryFilter:event.currentTarget.dataset.filter}); this.updateLibraryView() },
+  favoriteTrack(event) {
+    const item=this.data.queue[Number(event.currentTarget.dataset.index)]
+    if (!item) return
+    const favorites=this.data.favorites.includes(item.url)?this.data.favorites.filter(u=>u!==item.url):[...this.data.favorites,item.url]
+    this.setData({favorites,isFavorite:favorites.includes((this.data.queue[this.data.currentIndex]||{}).url)})
+    this.saveLibrary()
+  },
+  onSeekChanging(event) { this.setData({seekDragging:true,progress:Number(event.detail.value),positionText:time(this.data.duration*Number(event.detail.value)/100)}) },
+  seek(event) {
+    this.setData({seekDragging:false})
+    return this.run(async()=>{
+      const device=this.requireDevice()
+      if (!this.data.duration) throw new Error('音箱尚未返回时长，无法调整进度')
+      this.commandGeneration=(this.commandGeneration||0)+1
+      try { await this.client.seek(device,Math.round(this.data.duration*1000*Number(event.detail.value)/100)) }
+      finally { await this.loadStatus(device) }
+    })
+  },
+  openTool(event) {
+    if (this.data.busy) return
+    const tool=event.currentTarget.dataset.tool
+    if (!['tts','timer','night','info'].includes(tool)) return
+    this.setData({toolOpen:tool,volumeOpen:false,queueOpen:false,error:'',message:'',nightReady:false,timerText:'尚未读取'})
+    if (tool==='timer' || tool==='night') return this.run(()=>this.readTool(tool,this.requireDevice()))
+  },
+  closeTool() { if (!this.data.busy) this.setData({toolOpen:''}) },
+  async readTool(tool,device) {
+    const result=await (tool==='timer'?this.client.timer(device):this.client.nightMode(device))
+    if (this.disposed || !this.client.session || !this.data.selectedDevice || this.data.selectedDevice.deviceID!==device.deviceID || this.data.toolOpen!==tool) return
+    if (tool==='timer') {
+      if (![0,1,2].includes(result.type)) throw new Error('设备未返回有效定时状态')
+      if (result.type===1 && (!Number.isFinite(result.remain_time) || result.remain_time<0)) throw new Error('设备未返回有效剩余时间')
+      this.setData({timerText:result.type===1?'剩余 '+time(result.remain_time)+' 后暂停（读取时）':result.type===2?'本曲结束后停止':'未设置定时'})
+    } else {
+      if (![result.total,result.light,result.volume].every(v=>['night','normal'].includes(v)) || ![result.start,result.stop].every(v=>typeof v==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v))) throw new Error('设备未返回完整夜间设置，暂不能修改')
+      this.setData({night:{total:result.total,light:result.light,volume:result.volume,start:result.start,stop:result.stop},nightReady:true})
+    }
+  },
+  speak() { return this.run(async()=>{ await this.client.speak(this.requireDevice(),this.data.ttsText); this.setData({message:'播报指令已发送'}) }) },
+  chooseTimer(event) {
+    return this.run(async()=>{
+      const device=this.requireDevice()
+      await this.client.setTimer(device,Number(event.currentTarget.dataset.minutes))
+      this.setData({message:'定时指令已发送'})
+      await this.readTool('timer',device)
+    })
+  },
+  editNight(event) {
+    const field=event.currentTarget.dataset.field
+    if (!this.data.nightReady || this.data.busy || !['total','light','volume','start','stop'].includes(field)) return
+    const value=['start','stop'].includes(field)?event.detail.value:(event.detail.value?'night':'normal')
+    this.setData({night:{...this.data.night,[field]:value}})
+  },
+  saveNight() {
+    return this.run(async()=>{
+      if (!this.data.nightReady) throw new Error('请先读取设备的夜间设置')
+      const device=this.requireDevice()
+      await this.client.setNightMode(device,this.data.night)
+      this.setData({message:'夜间模式指令已发送'})
+      await this.readTool('night',device)
+    })
+  },
   refreshStatus() { return this.run(()=>this.loadStatus(this.requireDevice())) },
   copyDiagnostics() {
     const platform=wx.getDeviceInfo?wx.getDeviceInfo():{}
@@ -249,7 +334,9 @@ Page({
   logout() {
     if (this.data.busy) return
     this.client.logout()
+    this.commandGeneration=(this.commandGeneration||0)+1
     this.currentDeviceID=null
+    this.setData({toolOpen:'',ttsText:'',nightReady:false,tab:'speaker'})
     this.setData({loggedIn:false,otp:false,account:'',password:'',code:'',devices:[],selectedDevice:null,
       statusText:'尚未查询',volumeText:'',message:'已退出并清除本机登录凭证',error:'',playerOpen:false,queueOpen:false,volumeOpen:false,isPlaying:false,volumeKnown:false})
   }
