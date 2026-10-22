@@ -282,12 +282,12 @@ Page({
     })
   },
   updateNavigationTitle() {
-    const title=this.data.loggedIn?({speaker:'我的音箱',music:'我的音乐',account:'我的'}[this.data.tab] || '我的音箱'):'家庭音箱'
+    const title=this.data.loggedIn?({speaker:'我的音箱',music:'我的音乐',story:'故事',account:'我的'}[this.data.tab] || '我的音箱'):'家庭音箱'
     if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({title})
   },
   switchTab(event) {
     const tab=event.currentTarget.dataset.tab
-    if (['speaker','music','account'].includes(tab)) {
+    if (['speaker','music','story','account'].includes(tab)) {
       this.setData({tab})
       this.updateNavigationTitle()
     }

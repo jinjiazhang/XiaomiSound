@@ -172,10 +172,18 @@
 
 /* Device, library and account navigation */
 .page.with-player { padding-bottom: 300rpx; }
-.bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:25; display:flex; background:#fff; border-top:1rpx solid #edf0f5; padding:12rpx 20rpx calc(12rpx + env(safe-area-inset-bottom)); }
-.page button.nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; width:0; min-width:0; min-height:0; height:92rpx; flex:1 1 0%; margin:0; padding:8rpx; background:transparent; color:#8a91a1; font-size:23rpx; line-height:1.5; border-radius:0; }
-.nav-item text { display:block; font-size:34rpx; }
-.page button.nav-item.active,.page button.filter.active { color:#346df1; background:#eef3ff; }
+/* Match PointJoy's white tab bar and outlined blue/muted icon states. */
+.tab-bar { position:fixed; bottom:0; left:0; right:0; z-index:25; padding-bottom:env(safe-area-inset-bottom); background:#fff; border-top:1px solid #e8ebf2; }
+.bottom-nav { display:flex; align-items:center; justify-content:space-around; max-width:1100rpx; height:108rpx; margin:auto; padding:0 12rpx; }
+.page button.nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; width:0; min-width:0; min-height:0; height:108rpx; flex:1 1 0%; gap:4rpx; margin:0; padding:10rpx 16rpx; background:transparent; color:#6f7888; font-size:22rpx; font-weight:500; line-height:1.5; border-radius:0; }
+.page button.nav-item.active { color:#006ce8; background:transparent; }
+.nav-icon-wrap { height:45rpx; display:flex; align-items:center; justify-content:center; }
+.nav-icon { display:block; width:43rpx; height:43rpx; }
+.page button.filter.active { color:#346df1; background:#eef3ff; }
+.story-empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:54rpx 34rpx; }
+.story-empty-icon { width:96rpx; height:96rpx; margin-bottom:24rpx; }
+.story-empty-title { font-size:32rpx; font-weight:600; }
+.story-empty .secondary { flex:none; margin-top:32rpx; }
 .page .mini-player { bottom:calc(126rpx + env(safe-area-inset-bottom)); }
 .device-dashboard { text-align:center; }
 .speaker-illustration { width:150rpx; height:150rpx; margin:16rpx auto 28rpx; border-radius:42rpx; background:linear-gradient(145deg,#526787,#17263f); color:#a5c9ff; font-size:88rpx; line-height:150rpx; box-shadow:0 18rpx 40rpx #dce3ef; }

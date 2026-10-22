@@ -161,7 +161,7 @@ class XiaomiClient {
         ![start,stop].every(v=>typeof v==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)) || start===stop) throw new Error('请检查夜间模式和起止时间')
     return this.execute(device,'set',{total,light,volume,start,stop},'nightmode')
   }
-  diagnostics() { return {version:'0.3.11',playback:this.playbackDiagnostics||null,requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
+  diagnostics() { return {version:'0.3.12',playback:this.playbackDiagnostics||null,requests:[...(this.cloudDiagnostics||[]),...this.http.diagnostics]} }
   logout() {
     this.cancelVerification()
     this.session=null; this.pending=null

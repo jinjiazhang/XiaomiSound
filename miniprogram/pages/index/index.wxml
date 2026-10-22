@@ -78,6 +78,12 @@
       </view>
       <view wx:if="{{!visibleTracks.length}}" class="empty-state">{{search ? '没有匹配的音频' : (libraryFilter === 'favorites' ? '点击音频旁的爱心，收藏喜欢的声音' : '播放音频后，会在这里留下记录')}}</view>
     </view>
+    <view wx:if="{{tab === 'story'}}" class="card story-empty">
+      <image class="story-empty-icon" src="/assets/tabs/story-blue.png" mode="aspectFit"/>
+      <view class="story-empty-title">还没有故事内容</view>
+      <view class="hint">故事内容待接入。已有故事音频链接可在“音乐”页添加并播放。</view>
+      <button class="secondary" data-tab="music" bindtap="switchTab">去添加音频</button>
+    </view>
     <view wx:if="{{tab === 'account'}}" class="card">
       <view class="card-title">小米账号已连接</view>
       <view class="hint">已发现 {{devices.length}} 台音箱。使用绑定设备的小米账号控制音箱。</view>
@@ -151,11 +157,12 @@
       <button class="primary volume-done" bindtap="closeVolume">完成</button>
     </view>
   </view>
-  <view wx:if="{{loggedIn}}" class="bottom-nav">
-    <button class="nav-item {{tab === 'speaker' ? 'active' : ''}}" data-tab="speaker" bindtap="switchTab"><text>◉</text>音箱</button>
-    <button class="nav-item {{tab === 'music' ? 'active' : ''}}" data-tab="music" bindtap="switchTab"><text>♫</text>音乐</button>
-    <button class="nav-item {{tab === 'account' ? 'active' : ''}}" data-tab="account" bindtap="switchTab"><text>☺</text>我的</button>
-  </view>
+  <view wx:if="{{loggedIn}}" class="tab-bar"><view class="bottom-nav">
+    <button class="nav-item {{tab === 'speaker' ? 'active' : ''}}" data-tab="speaker" bindtap="switchTab" aria-label="音箱"><view class="nav-icon-wrap"><image class="nav-icon" src="/assets/tabs/speaker-{{tab === 'speaker' ? 'blue' : 'muted'}}.png" mode="aspectFit"/></view><text>音箱</text></button>
+    <button class="nav-item {{tab === 'music' ? 'active' : ''}}" data-tab="music" bindtap="switchTab" aria-label="音乐"><view class="nav-icon-wrap"><image class="nav-icon" src="/assets/tabs/music-{{tab === 'music' ? 'blue' : 'muted'}}.png" mode="aspectFit"/></view><text>音乐</text></button>
+    <button class="nav-item {{tab === 'story' ? 'active' : ''}}" data-tab="story" bindtap="switchTab" aria-label="故事"><view class="nav-icon-wrap"><image class="nav-icon" src="/assets/tabs/story-{{tab === 'story' ? 'blue' : 'muted'}}.png" mode="aspectFit"/></view><text>故事</text></button>
+    <button class="nav-item {{tab === 'account' ? 'active' : ''}}" data-tab="account" bindtap="switchTab" aria-label="我的"><view class="nav-icon-wrap"><image class="nav-icon" src="/assets/tabs/account-{{tab === 'account' ? 'blue' : 'muted'}}.png" mode="aspectFit"/></view><text>我的</text></button>
+  </view></view>
   <view wx:if="{{loggedIn && toolOpen && selectedDevice}}" class="sheet-mask tools-mask" bindtap="closeTool">
     <view class="tool-sheet" catchtap="noop">
       <view class="sheet-head"><view><view class="card-title">{{toolOpen === 'tts' ? '文字播报' : (toolOpen === 'timer' ? '睡眠定时' : (toolOpen === 'night' ? '夜间模式' : '设备信息'))}}</view><view class="hint">{{selectedDevice.name}}</view></view><button class="icon-button" size="mini" disabled="{{busy}}" bindtap="closeTool" aria-label="关闭">×</button></view>
